@@ -1,0 +1,653 @@
+---
+title: "Projeto Final: Modelo de Classificação de Fraude para Dados Desbalanceados"
+author: "Estéfano Souza"
+date: 2024-01-18
+abstract-title: Resumo
+abstract: 'Neste projeto final do curso **Relatórios e Apresentações** (turma de novembro/dezembro de 2023) da `curso-R`, nosso objetivo principal é explorar alguns recursos de preparação, análise e modelagem de dados dentro do *software* R, com base em um exemplo de classificação de fraude a partir de dados de transações financeiras via cartão de crédito realizadas ao longo de dois dias de setembro de 2013 na Europa.'
+format:
+  html:
+    theme: sandstone
+    toc: true
+    toc-depth: 3
+    toc-expand: true
+    toc-location: left
+    toc-title: Conteúdo
+    number-sections: true
+lang: pt-br
+fig-cap-location: top
+knitr: 
+  opts_chunk: 
+    warning: false
+    message: false
+    echo: false
+    fig-align: center
+    dpi: 300
+    out-width: "70%"
+code-link: true
+execute:
+  cache: true
+  warning: false
+link-external-newwindow: true
+bibliography:
+  - references.bib
+  - packages.bib
+csl: apa.csl
+---
+
+<br>
+
+# Introdução {#sec-introducao}
+
+A detecção de fraude é um processo, respectivamente, trabalhoso e desafiador para companhias de cartões de crédito por causa do volume enorme de transações completadas diariamente e porque muitas transações fraudulentas aparentam ser transações normais.
+
+Um modelo para identificação de transações fraudulentas é, tipicamente, um exemplo de **classificação binária desbalanceada** na qual o objetivo principal é classificar corretamente um evento positivo (no caso, uma transação fraudulenta). O termo "desbalanceado" vem do fato de que, em geral, o número de fraudes é muito menor que o número de transações normais, o que gera algumas dificiulades para que modelos tradicionais de classificação (como regressão logística ou árvore de decisão) realizem previsões precisas quanto ao evento positivo. Nessas condições, algumas métricas como precisão e a rechamada (*recall*) são mais adequadas para avaliar a qualidade de um modelo preditivo de classificação binária se comparadas, por exemplo, à acurácia geral ou a área sob a curva ROC.
+
+Neste projeto, que foi inspirado no post original de Jason Brownlee no site *Machine Learning Mastery* ([clique aqui](https://machinelearningmastery.com/imbalanced-classification-with-the-fraudulent-credit-card-transactions-dataset/ "Machine Learning Mastery: Imbalanced Classification with the Fraudulent Credit Card Transactions Dataset") para acessá-lo), nós utilizaremos o *software* R [@R-base] para a importação e análise descritiva de dados de fraude via transações por cartão de crédito, assim como a construção e avaliação de dois modelos de classificação quando aplicados a dados desbalanceados em relação à distribuição de uma variável resposta que, por sua vez, identifica se uma transação foi fraudenta ou não.
+
+Antes de apresentarmos o conjunto de dados de fraude que será utilizado neste projeto, vamos carregar, dentro do ambiente R, os pacotes necessários para a nossa análise.
+
+```{r}
+#| label: packages
+#| echo: true
+#| eval: false
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(janitor)
+library(corrplot)
+library(caret)
+library(DescTools)
+library(randomForest)
+```
+
+```{r}
+#| label: proj-packages
+#| echo: false
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(janitor)
+library(corrplot)
+library(caret)
+library(DescTools)
+library(randomForest)
+```
+
+Ao longo deste projeto, a maioria dos procedimentos de preparação de dados serão realizados a partir de funções do pacote `dplyr` [@R-dplyr], que faz parte da coleção de pacotes `tidyverse` [@R-tidyverse]. Para a construção das tabelas, serão utilizados os pacotes `knitr` [@R-knitr], `kableExtra` [@R-kableExtra] e `janitor` [@R-janitor]. Os outros pacotes serão citados posteriormente. 
+
+<br>
+
+# Conjunto de Dados de Fraude {#sec-conj-dados}
+
+O conjunto de dados que será analisado contém transações, via cartão de crédito, realizadas por clientes europeus em setembro de 2013 e está disponível online em <https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud>.
+
+## Descrição dos Dados
+
+Realizou-se a coleta dos dados ao longo de dois dias, de modo que foram detectadas 492 fraudes, o que representa apenas 0,172% de todas as 284807 transações realizadas no período.
+
+Devido a questões de confidencialidade, as 28 variáveis de entrada originais foram transformadas por meio de Análise de Componentes Principais (PCA), resultando nas componentes `V1`, `V2`, $\cdots$, `V28` que serão nossas candidatas a variáveis preditoras.
+
+A variável `time` representa o tempo, em segundos, entre a primeira transação e a respectiva transação, de modo que as transações já estão ordenadas em ordem cronológica no conjunto de dados original e, portanto, a primeira linha representa a primeira transação realizada. Por sua vez, a variável `amount` contém o valor monetário (provavelmente em euros) de cada transação - por simplificação, não a utilizaremos como um preditor nos dois modelos de classificação de fraude.
+
+Finalmente, a variável `class` é a nossa variável resposta, assumindo o valor 1 em caso de fraude e o valor 0 caso contrário. Como dito anteriormente, somente 0,172% das transações foram detectadas como fraudulentas, o que invialibiliza o uso da estatística de acurácia como uma ferramenta totalmente confiável de avaliação da qualidade geral do ajuste do modelo. Outras estatísticas como precisão (*precision*) e rechamada (*recall*), além da própria área sobre a curva de precisão-rechamada (AUPRC), são mais adequadas quando os dados são muito desbalanceados em relação às categorias da variável resposta. Em particular, nós trabalharemos especialmente com a precisão e a rechamada.
+
+## Importação dos Dados
+
+Para facilitar a reprodutibilidade da análise, o conjunto de dados original foi previamente dividido em cinco arquivos do tipo CSV que estão armazenados [no meu repositório pessoal](https://github.com/estefano-souza/projeto-final). Cada arquivo contém os nomes das variáveis na primeira linha e pode ser importado como um *data frame* a partir da função `read.csv`, como exibido neste trecho de código:
+
+```{r}
+#| label: import-data
+#| echo: true
+creditcard_01 <- read.csv(paste0("https://raw.githubusercontent.com/estefano-souza",
+                         "/projeto-final/main/dados/creditcard_01.csv"),
+                          header=TRUE,
+                          stringsAsFactors=FALSE)
+creditcard_02 <- read.csv(paste0("https://raw.githubusercontent.com/estefano-souza",
+                         "/projeto-final/main/dados/creditcard_02.csv"),
+                          header=TRUE,
+                          stringsAsFactors=FALSE)
+creditcard_03 <- read.csv(paste0("https://raw.githubusercontent.com/estefano-souza",
+                         "/projeto-final/main/dados/creditcard_03.csv"),
+                          header=TRUE,
+                          stringsAsFactors=FALSE)
+creditcard_04 <- read.csv(paste0("https://raw.githubusercontent.com/estefano-souza",
+                         "/projeto-final/main/dados/creditcard_04.csv"),
+                          header=TRUE,
+                          stringsAsFactors=FALSE)
+creditcard_05 <- read.csv(paste0("https://raw.githubusercontent.com/estefano-souza",
+                         "/projeto-final/main/dados/creditcard_05.csv"),
+                          header=TRUE,
+                          stringsAsFactors=FALSE)
+```
+
+## Preparação dos Dados
+
+A seguir, os cinco *data frames* são unidos, de forma sequencial, para formar um único *data frame* chamado `creditcard` que contém todas as transações realizadas. Contudo, a primeira variável (coluna sem nome) contém o índice original de cada transação no conjunto de dados: dentro do R, ela recebe o nome automático `X` e os dados são ordenados a partir dos seus valores para retomarmos a ordenação original.
+
+Após a união, a variável `X` é imediatamente excluída e, finalmente, os cinco *data frames* originais são excluídos do ambiente de trabalho.
+
+```{r}
+#| label: prep-dataset
+#| echo: true
+creditcard <- dplyr::bind_rows(creditcard_01, creditcard_02,
+                              creditcard_03, creditcard_04,
+                              creditcard_05) |> 
+              dplyr::arrange(X) |> 
+              dplyr::select(!X)
+
+remove(list = sprintf("creditcard_0%d", seq(1:5)))
+```
+
+A seguir, apresentamos uma visualização básica das primeiras transações (linhas) do conjunto completo de dados na [@tbl-data]. Observe que todas as variáveis são numéricas, incluindo a variável `class`.
+
+```{r}
+#| label: tbl-data
+#| tbl-cap: "Conjunto de dados de fraude (primeiras transações)"
+#| echo: false
+knitr::kable(head(creditcard, n = 10), digits = 4)
+```
+
+<br>
+
+# Partições de Treinamento e Teste {#sec-trn-teste}
+
+Quando os dados são muito desbalanceados em relação à distribuição das categorias da variável resposta, torna-se ainda mais fundamental dividi-los em partições (subconjuntos) de treinamento e de teste para a construção de um modelo preditivo e, a partir disto, garantir que este modelo fará boas previsões para dados que não foram utilizados na sua construção.
+
+Para a nossa análise, vamos selecionar, de forma aleatória, aproximadamente 80% das transações para treinarmos o nosso modelo: este novo *data frame* será chamado de `train_data` e será a nossa partição de treinamento. Por sua vez, todas as outras transações serão incluídas no *data frame* chamado `test_data`, que será a nossa partição de teste.
+
+Temos que garantir que a distribuição da variável `class` nas duas partições seja semelhante à distribuição original, ou seja, cerca de 0,172% das transações devem ser fraudulentas nos dois *data frames*; para isso, vamos utilizar a função `createDataPartition` do pacote `[caret]` [@R-caret]. Além disto, todas as variáveis `V1` a `V28` serão padronizadas de modo que cada uma delas, dentro de cada partição, tenha média 0 e desvio padrão 1.
+
+Como uma etapa adicional na preparação das partições, vamos excluir as variáveis `time` e `amount`, uma vez que elas não serão utilizadas na construção dos modelos.
+
+```{r}
+#| label: data-partition
+#| echo: true
+set.seed(3456)
+trainIndex <- caret::createDataPartition(creditcard$class, p = 0.8,
+                                         list = FALSE, times = 1)
+
+train_data <- creditcard[trainIndex, ] |>
+  dplyr::mutate_at(vars(starts_with("V")), scale) |>
+  dplyr::select(-c(time, amount))
+
+test_data <- creditcard[-trainIndex, ] |>
+  dplyr::mutate_at(vars(starts_with("V")), scale) |>
+  dplyr::select(-c(time, amount))
+```
+
+## Estatísticas Descritivas
+
+Como esperado, a distribuição da variável `class` se manteve semelhante à distribuição original tanto na partição de treinamento ([@tbl-class-trn]) quanto na partição de teste ([@tbl-class-test]).
+
+```{r}
+#| label: tbl-class-trn
+#| tbl-cap: "Distribuição da variável resposta (partição de treinamento)"
+knitr::kable(train_data |>
+            dplyr::group_by(class) |>
+            dplyr::summarize(frequencia = n(), pct = n() / nrow(train_data) * 100) |>
+            janitor::adorn_totals(),
+            digits = 3,
+            col.names = c("class", "Frequência", "Porcentagem")) |>
+  kable_styling() |>
+  row_spec(3, bold = TRUE)
+```
+
+```{r}
+#| label: tbl-class-test
+#| tbl-cap: "Distribuição da variável resposta (partição de teste)"
+knitr::kable(test_data |>
+            dplyr::group_by(class) |>
+            dplyr::summarize(frequencia = n(), pct = n() / nrow(test_data) * 100) |>
+            janitor::adorn_totals(),
+            digits = 3,
+            col.names = c("class", "Frequência", "Porcentagem")) |>
+  kable_styling() |>
+  row_spec(3, bold = TRUE)
+```
+
+A partição de treinamento `train_data` contém `r nrow(train_data)` transações, o que representa um pouco mais de `r round(nrow(train_data) / nrow(creditcard) * 100, digits = 0)`% de todas as transações. Por sua vez, a partição de teste `test_data` contém `r nrow(test_data)` transações, um pouco menos de `r round(nrow(test_data) / nrow(creditcard) * 100, digits = 0)`% do total.
+
+Como um exemplo de análise de cada variável candidata a preditor, apresentamos as estatísticas descritivas básicas da variável `V1` na partição de treinamento ([@tbl-V1-trn]) e na partição de teste ([@tbl-V1-test]), agrupadas pelos valores da variável resposta `class` em cada partição. Em particular, observe que, levando-se em conta somente as transações fraudulentas (`class` = 1), os valores dessas estatísticas são semelhantes ao compararmos as duas partições, mesmo com apenas 492 transações deste tipo no conjunto de dados completo.
+
+```{r}
+#| label: tbl-V1-trn
+#| tbl-cap: "Estatísticas descritivas da variável `V1` na partição de treinamento (agrupadas pela variável resposta)"
+knitr::kable(train_data |>
+  dplyr::mutate(class = factor(class)) |>
+  dplyr::group_by(class) |>
+  summarize(media = mean(V1), mediana = median(V1), desvpad = sd(V1), minimo = min(V1), maximo = max(V1)),
+  digits = 3,
+  col.names = c("class", "Média", "Mediana", "Desvio Padrão", "Mínimo", "Máximo"))
+```
+
+```{r}
+#| label: tbl-V1-test
+#| tbl-cap: "Estatísticas descritivas da variável `V1` na partição de teste (agrupadas pela variável resposta)"
+knitr::kable(test_data |>
+  dplyr::mutate(class = factor(class)) |>
+  dplyr::group_by(class) |>
+  summarize(media = mean(V1), mediana = median(V1), desvpad = sd(V1), minimo = min(V1), maximo = max(V1)),
+  digits = 3,
+  col.names = c("class", "Média", "Mediana", "Desvio Padrão", "Mínimo", "Máximo"))
+```
+
+## Matriz de Correlações dos Preditores
+
+Como explicado na [@sec-conj-dados], as 28 variáveis de entrada originais foram transformadas em componentes principais para manter a confidencialidade das informações sobre os clientes. Componentes construídas via PCA não são correlacionadas, o que favorece a sua utilização como preditores em modelos como a regressão logística, que supõe a ausência de colinearidade (correlação) perfeita entre as variáveis independentes.
+
+Apenas como uma verificação simples, exibimos uma representação gráfica da matriz de correlações de Pearson das variáveis padronizadas `V1` a `V28` para os dados da partição de treinamento ([@fig-corrplot-trn]) e da partição de teste ([@fig-corrplot-test]). O cálculo das correlações e a visualização dos valores é feita a partir da função `corrplot` do pacote `[corrplot]` [@R-corrplot].
+
+
+De fato, os valores de todas as correlações entre cada par de variáveis distintas estão muito próximos de zero, independentemente da partição.
+
+```{r}
+#| label: fig-corrplot-trn
+#| fig-cap: "Matriz de correlações dos preditores (amostra de treinamento)"
+# AMOSTRA DE TREINAMENTO
+corrplot::corrplot(cor(train_data[, -29]),
+                  method = "color",
+                  tl.col = "black",
+                  tl.srt = 90)
+```
+
+```{r}
+#| label: fig-corrplot-test
+#| fig-cap: "Matriz de correlações dos preditores (amostra de teste)"
+# AMOSTRA DE TESTE
+corrplot::corrplot(cor(test_data[, -29]),
+                  method = "color",
+                  tl.col = "black",
+                  tl.srt = 90)
+```
+
+Nas próximas duas seções, vamos construir dois modelos de classificação e, então, comparar seus desempenhos em termos das estatísticas de qualidade do ajuste para as previsões de ocorrência de fraude nos dados da partição de teste.
+
+<br>
+
+# Modelo 1: Regressão Logística {#sec-reg-logit}
+
+Nosso primeiro modelo de classificação será baseado na **regressão logística binária** [@MN89], na qual a variável resposta possui somente duas categorias. De uma forma resumida, pode-se dizer que este tipo de regressão divide o espaço gerado pelas variáveis preditoras em dois subespaços, de modo que uma transação será classificada como fraude (evento *"positivo"*) ou não-fraude (evento *"negativo"*) se o valor de uma combinação linear dos valores dos preditores para esta transação cair dentro do respectivo subespaço.
+
+## Construção do Modelo Logístico
+
+Para a estimação dos parâmetros do nosso modelo de regressão logística, vamos usar a função `glm` com as opções padrão para a construção deste tipo de modelo (família binomial com função de ligação $logit(p)=\log{(\frac{p}{1 - p})}$, onde $0 < p < 1$ é a probabilidade de ocorrência do evento positivo) e utilizando os dados da partição de treinamento `train_data`.
+
+```{r}
+#| label: logit-model
+#| echo: true
+modelo_trn <- glm(class ~ ., family = binomial(link = "logit"),
+                  data = train_data)
+```
+
+A seguir, vamos apresentar os resultados do modelo e avaliar a sua capacidade de fazer boas previsões a partir dos dados da partição de teste.
+
+## Resumo do Modelo Logístico
+
+### Coeficientes Estimados e Significância
+
+A função `summary` aplicada ao modelo construído gera o seguinte resumo com os valores das estimativas dos coeficientes de cada variável preditora e os respectivos testes de significância estatística.
+
+```{r}
+#| label: summary-logit
+#| echo: true
+summary(modelo_trn)
+```
+
+Além da estimativa do intercepto do preditor linear, as estivativas dos coeficientes das componentes `V4`, `V8`, `V10`, `V14`, `V20`, `V21`, `V22` e `V27` foram detectadas como estatisticamente significantes em um nível de significância de 0,1% - faz sentido utilizar um nível tão pequeno como referência devido ao tamanho amostral relativamente grande dos conjuntos de dados. No momento, vamos manter todos os preditores no modelo, mas será um exercício interessante comparar o desempenho do modelo atual com um modelo que contém somente os preditores significantes, o que será feito no final da seção.
+
+### Pseudo R-Quadrado
+
+Como uma forma de avaliar a qualidade geral do ajuste a partir dos dados de treinamento, a [@tbl-pseudo-r2-logit] exibe os valores das medidas de pseudo R-quadrado de McFadden, Cox-Snell e Nagelkerke (Cragg-Uhler). Foi utilizada a função `PseudoR2` do pacote `[DescTools]` [@R-DescTools] para o cálculo destas medidas.
+
+```{r}
+#| label: tbl-pseudo-r2-logit
+#| tbl-cap: "Medidas de pseudo R-quadrado para o modelo logístico"
+#| echo: true
+DescTools::PseudoR2(modelo_trn,
+                    which = c("McFadden", "CoxSnell", "Nagelkerke")) |>
+  knitr::kable(digits = 5,
+               col.names = c("Medida", "Valor"))
+```
+
+Em geral, os valores destas medidas não são próximos de 1 mesmo em modelos de classificação relativamente bem ajustados. Particularmente, o limite superior do pseudo R-quadrado de Cox-Snell sempre é menor que 1; a medida de Nagelkerke, de fato, é uma versão "normalizada" da medida de Cox-Snell para que seja garantido que o limite superior sempre seja 1.
+
+Tanto o pseudo R-quadrado de McFadden quanto o de Nagelkerke tem o valor 1 como limite superior, o que os aproxima de uma interpretação semelhante à do R-quadrado da regressão linear. Contudo, em situações nas quais os dados são muito desbalanceados em relação às categorias de uma variável resposta binária, os valores de ambas as medidas ficam próximas de 1 de forma artificial porque a categoria com a maior frequência tende a ser muito melhor identificada pelo modelo do que a categoria com a menor frequência, resultando numa contribuição igualmente desbalanceada na qualidade do ajuste (como veremos no próximo tópico).
+
+No nosso modelo logístico, ambas as medidas estão próximas de 0,72 (ou 72%), o que poderia nos levar à conclusão de que o ajuste do modelo aos dados da partição de treinamento está satisfatório. Entretanto, nossa breve discussão no parágrafo anterior deixa evidente que precisaremos utilizar outras métricas para avaliar a qualidade do nosso modelo.
+
+Para mais detalhes sobre medidas de pseudo R-quadrado, você pode consultar o artigo que está disponível neste link: <https://statisticalhorizons.com/r2logistic/>.
+
+### Avaliação das Previsões do Modelo Logístico
+
+Para verificarmos quão bem nosso modelo de regressão logística binária fez suas previsões, vamos avaliar a matriz de confusão e suas principais estatísticas associadas tanto para os dados da partição de treinamento quanto - e principalmente - para a amostra de teste.
+
+#### Partição de Treinamento (Modelo Logístico) {.unnumbered}
+
+Vamos começar com a partição de treinamento. As previsões do modelo logístico (1 para "fraude" e 0 para "não-fraude") são armazenadas em um vetor numérico chamado `previsoes_logit_trn` e, então, recuperamos os valores originais da variável resposta (`train_data$class`) para utilizarmos estes dois objetos como argumentos da função `confusionMatrix` do pacote `[caret]` que retorna um objeto com todas as informações que precisaremos. Para esta função, é necessário que os vetores numéricos com as previsões e os valores observados sejam transformados em fatores. Além disto, observe que definimos o indicador de fraude como evento positivo (`positive = "1"`) para que as estatísticas de precisão e rechamada sejam calculadas em função deste evento.
+
+```{r}
+#| label: prev-cm-logit-trn
+#| echo: true
+previsoes_logit_trn <- ifelse(predict(modelo_trn,
+                                  type = "response") > 0.5, 1, 0)
+
+cm_trn <- caret::confusionMatrix(data = as.factor(previsoes_logit_trn),
+                              reference = as.factor(train_data$class),
+                              dnn = c("Previsto", "Observado"),
+                              positive = "1",
+                              mode = "everything")
+```
+
+A seguir, a [@fig-cm-logit-trn] exibe tanto a **matriz de confusão** (também conhecida como **matriz de classificação**) quanto algumas das principais estatísticas de avaliação da qualidade do ajuste do modelo. Nós discutiremos cada um destes elementos a seguir.
+
+```{r}
+# Fonte do código original da função: https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package
+draw_confusion_matrix <- function(cm) {
+
+  layout(matrix(c(1,1,2)))
+  par(mar=c(2,2,2,2))
+  plot(c(100, 345), c(300, 450), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
+
+  # create the matrix 
+  rect(150, 430, 240, 370, col='#3F97D0')
+  text(195, 435, '0 (Não)', cex=1.2)
+  rect(250, 430, 340, 370, col='#F7AD50')
+  text(295, 435, '1 (Sim)', cex=1.2)
+  text(125, 370, 'Observado', cex=1.3, srt=90, font=2)
+  text(245, 450, 'Previsto', cex=1.3, font=2)
+  rect(150, 305, 240, 365, col='#F7AD50')
+  rect(250, 305, 340, 365, col='#3F97D0')
+  text(140, 400, '0 (Não)', cex=1.2, srt=90)
+  text(140, 335, '1 (Sim)', cex=1.2, srt=90)
+
+  # add in the cm results 
+  res <- as.numeric(t(cm$table))
+  text(195, 400, res[1], cex=1.6, font=2, col='white')
+  text(195, 335, res[2], cex=1.6, font=2, col='white')
+  text(295, 400, res[3], cex=1.6, font=2, col='white')
+  text(295, 335, res[4], cex=1.6, font=2, col='white')
+
+  # add in the specifics
+  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
+  text(10, 85, "Sensibilidade", cex=1.5, font=2)
+  text(10, 70, round(as.numeric(cm$byClass[1]), 5), cex=1.5)
+  text(30, 85, "Especificidade", cex=1.5, font=2)
+  text(30, 70, round(as.numeric(cm$byClass[2]), 5), cex=1.5)
+  text(50, 85, "Precisão", cex=1.5, font=2)
+  text(50, 70, round(as.numeric(cm$byClass[5]), 5), cex=1.5)
+  text(70, 85, "Rechamada", cex=1.5, font=2)
+  text(70, 70, round(as.numeric(cm$byClass[6]), 5), cex=1.5)
+  text(90, 85, "F1-score", cex=1.5, font=2)
+  text(90, 70, round(as.numeric(cm$byClass[7]), 5), cex=1.5)
+
+  # add in the accuracy information
+  text(30, 35, "Acurácia", cex=1.9, font=2)
+  text(30, 20, round(as.numeric(cm$overall[1]), 5), cex=1.7)
+  text(70, 35, "Kappa", cex=1.9, font=2)
+  text(70, 20, round(as.numeric(cm$overall[2]), 5), cex=1.7)
+}
+
+```
+
+```{r}
+#| label: cm-logit-trn
+#| echo: true
+#| eval: false
+draw_confusion_matrix(cm_trn)
+```
+
+```{r}
+#| label: fig-cm-logit-trn
+#| fig-cap: "Matriz de confusão e estatísticas da qualidade das previsões do modelo logístico na partição de treinamento"
+draw_confusion_matrix(cm_trn)
+```
+
+(OBSERVAÇÃO: O código original com a função `draw_confusion_matrix` que constroi esta visualização está disponível em <https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package>. Seu único argumento é um objeto construído previamente pela função `confusionMatrix`. Nós fizemos algumas alterações no código da função para adaptá-la à nossa análise.)
+
+A **acurácia** é a porcentagem de transações, em relação ao total, que foram classificadas corretamente pelo modelo, independentemente da categoria da variável resposta `class`. Na nossa análise, este valor é 99,93%, o que indica a priori que o modelo fez um trabalho quase perfeito ao classificar as transações nos dados de treinamento, mas é necessário analisarmos as previsões para cada categoria de forma separada, especialmente quando os dados são tão desbalanceados.
+
+Somente 33 das 227453 transações não fraudulentas na partição de treinamento foram classificadas como fraude pelo modelo, resultando em uma **especificidade** (ou seja, a porcentagem de eventos negativos classificados corretamente) de pouco mais de 99,98%. De fato, essa porcentagem elevada explica por que o modelo teve uma acurácia tão próxima de 100%.
+
+Quanto ao evento positivo, 261 das 393 transações fraudulentas foram efetivamente classificadas como fraude pelo nosso modelo, resultando em uma **sensibilidade** de 66,41%. Este valor, de fato, é baixo em comparação com a porcentagem de identificação correta de eventos negativos - e isso já era esperado devido ao desbalanceamento dos dados quanto aos valores da variável resposta; contudo, quando nosso modelo classifica uma transação como fraudulenta (o que ocorreu em 294 transações), ele acertou 261 vezes, resultando em uma **precisão** de quase 88,78%, um valor significativo.
+
+Em algumas situações, vale mais a pena garantir que o modelo faça uma previsão certeira dado que ele classificou uma transação como fraudulenta devido à raridade do evento positivo neste tipo de dados. Sendo assim, aceita-se "sacrificar" um pouco da sensibilidade do modelo, aumentando consequentemente a porcentagem de falso-positivos, em nome de uma precisão melhor. Além disto, deve-se avaliar se é mais "custoso" classificar uma transação não-fraudulenta como fraude ou classificar uma transação fraudulenta como não-fraude; nestas condições, analisar o valor (*amount*) das transações nos respectivos grupos falso-positivos e falso-negativos pode ajudar na tomada de decisão.
+
+A **rechamada** (ou *recall*) é equivalente à sensibilidade e, por se referir ao evento positivo, é tipicamente avaliada em conjunto com a precisão. Por sua vez, a estatística **F1-score** une a precisão e a rechamada em um único valor que mede a qualidade geral do modelo em relação à classificação do evento positivo. Neste caso, temos que: $$
+F_1 = \frac{2 \cdot precisão \cdot recall}{precisão + recall} = 0,7598 = 75,98\%,
+$$ um valor relativamente satisfatório para um grupo de transações que representa somente 0,172% dos dados.
+
+Finalmente, o coeficiente **Kappa** (também conhecido como *Kappa de Cohen*) pode ser visto como uma estatística geral da acurácia de um modelo de classificação porque ele mede o nível de concordância entre a distribuição original dos valores da variável resposta e as previsões geradas pelo modelo. Kappa pode assumir valores entre 0 e 1 e quanto maior o seu valor, melhor é a capacidade preditiva geral do modelo.
+
+Para os dados de treinamento, o valor de Kappa é um pouco menor que 0,76, o que indica, de acordo com a escala apresentada por [@Landis77], uma concordância "substancial" entre as previsões do modelo e os valores observados.
+
+#### Partição de Teste (Modelo Logístico) {.unnumbered}
+
+Agora, vamos calcular as previsões do modelo logístico para os dados da partição de teste `test_data` e que serão armazenadas no vetor `previsoes_logit_test`. Da mesma forma que foi feito anteriormente, também criaremos um objeto `cm_test` que conterá todas as informações que precisamos para construir nossa matriz de confusão, assim como gerar as estatísticas de qualidade do ajuste do modelo.
+
+```{r}
+#| label: prev-cm-logit-test
+#| echo: true
+previsoes_logit_test <- ifelse(predict(modelo_trn,
+                                  newdata = test_data,
+                                  type = "response") > 0.5, 1, 0)
+
+
+cm_test <- caret::confusionMatrix(data = as.factor(previsoes_logit_test),
+                              reference = as.factor(test_data$class),
+                              dnn = c("Previsto", "Observado"),
+                              positive = "1",
+                              mode = "everything")
+```
+
+A [@fig-cm-logit-test] exibe a matriz de confusão e as estatísticas para o modelo logísico avaliado na partição de teste.
+
+```{r}
+#| label: cm-logit-test
+#| echo: true
+#| eval: false
+draw_confusion_matrix(cm_test)
+```
+
+```{r}
+#| label: fig-cm-logit-test
+#| fig-cap: "Matriz de confusão e estatísticas da qualidade das previsões do modelo logístico na partição de teste"
+draw_confusion_matrix(cm_test)
+```
+
+De uma forma geral, todas as estatísticas apresentaram valores um pouco menores quando comparados aos respectivos valores para o modelo aplicado na partição de treinamento; esta situação não é incomum quando aplicamos um modelo preditivo em dados de teste que não foram utilizado na construção do mesmo, mas a boa notícia é que nosso modelo logístico ainda consegue fazer um bom trabalho em termos de precisão, uma vez que 59 das 72 transações classificadas como fraude eram fraudulentas, resultando em uma precisão de 81,94%, um valor relativamente alto se levarmos em conta o quão desbalanceados são os dados em relação à variável resposta.
+
+Ainda que a sensibilidade (rechamada) em termos de classificação do evento positivo (fraude) tenha caído para cerca de 59,6% na partição de teste, o coeficiente Kappa ainda se manteve próximo de 0,7, indicando que o modelo possui uma capacidade preditiva significativa - o que não nos impede de tentar melhorá-lo, como veremos a seguir.
+
+## Modelo Logístico com os Preditores Significantes
+
+Agora, vamos verificar se manter apenas os oito preditores que foram detectados como estatisticamente significantes no modelo logístico original melhorará as previsões.
+
+As configurações do novo modelo construído a partir dos dados da partição de treinamento são armazenadas no objeto `modelo_trn_2`:
+
+```{r}
+#| label: logit-model-2
+#| echo: true
+modelo_trn_2 <- glm(class ~ V4 + V8 + V10 + V14 + V20 + V21 + V22 + V27,
+                    family = binomial(link = "logit"),
+                    data = train_data)
+```
+
+Aqui, não repetiremos os comandos utilizados na construção das tabelas e figuras, nos concentrando somente na interpretação dos resultados.
+
+O resumo do novo modelo logístico mostra que, de fato, todos os coeficientes dos preditores continuam sendo estatisticamente significantes:
+
+```{r}
+#| label: summary-logit-2
+#| echo: true
+summary(modelo_trn_2)
+```
+
+A [@tbl-pseudo-r2-logit-2] exibe as medidas de pseudo R-quadrado para o novo modelo, indicando uma pequena queda em relação aos valores do modelo completo com todos os preditores:
+
+```{r}
+#| label: tbl-pseudo-r2-logit-2
+#| tbl-cap: "Medidas de pseudo R-quadrado para o novo modelo logístico"
+DescTools::PseudoR2(modelo_trn_2,
+                    which = c("McFadden", "CoxSnell", "Nagelkerke")) |>
+  knitr::kable(digits = 5,
+               col.names = c("Medida", "Valor"))
+```
+
+A [@fig-cm-logit-trn-2] mostra que, de uma forma geral, o novo modelo logístico teve um desempenho um pouco pior nos dados de treinamento quanto às estatísticas de qualidade do ajuste. Da mesma forma, a [@fig-cm-logit-test-2] ratifica esta tendência do novo modelo aplicado aos dados da partição de teste.
+
+```{r}
+#| label: fig-cm-logit-trn-2
+#| fig-cap: "Matriz de confusão e estatísticas da qualidade das previsões do novo modelo logístico na partição de treinamento"
+previsoes_logit_trn_2 <- ifelse(predict(modelo_trn_2,
+                                  type = "response") > 0.5, 1, 0)
+
+
+cm_trn_2 <- caret::confusionMatrix(data = as.factor(previsoes_logit_trn_2),
+                              reference = as.factor(train_data$class),
+                              dnn = c("Previsto", "Observado"),
+                              positive = "1",
+                              mode = "everything")
+
+draw_confusion_matrix(cm_trn_2)
+```
+
+```{r}
+#| label: fig-cm-logit-test-2
+#| fig-cap: "Matriz de confusão e estatísticas da qualidade das previsões do novo modelo logístico na partição de teste"
+previsoes_logit_test_2 <- ifelse(predict(modelo_trn_2,
+                                  newdata = test_data,
+                                  type = "response") > 0.5, 1, 0)
+
+
+cm_test_2 <- caret::confusionMatrix(data = as.factor(previsoes_logit_test_2),
+                              reference = as.factor(test_data$class),
+                              dnn = c("Previsto", "Observado"),
+                              positive = "1",
+                              mode = "everything")
+
+draw_confusion_matrix(cm_test_2)
+```
+
+Com isto, podemos concluir que a exclusão de preditores não melhorou o modelo logístico original e, portanto, deveríamos manter todos os preditores em um primeiro momento.
+
+Ainda assim, vale observar que, ao contrário da regressão linear clássica, a inclusão de variáveis independentes em um modelo de regressão logística não é garantia de que o modelo melhore - no mínimo, em relação ao valor de uma das medidas de pseudo R-quadrado.
+
+<br>
+
+# Modelo 2: Floresta Aleatória (*Random Forest*) {#sec-random-forest}
+
+Nosso segundo tipo de modelo de classificação é a **floresta aleatória** (*random forest* ou, simplesmente, *RF*), que é um método de combinação de vários modelos de árvores de decisão construídos de forma simultânea; a previsão do modelo RF é a categoria (da variável resposta) que foi selecionada pela maioria dessas árvores. O primeiro algoritmo de floresta aleatório foi proposto pela cientista computacional Tin Kam Ho [@Ho95], com extensões posteriores implementadas, por exemplo, no atual pacote `randomForest` do R [@R-randomForest].
+
+Um dos principais problemas na construção de modelos simples de classificação (regressão logística, árvore de decisão etc.) é o **superajuste** (*overfitting*), que ocorre quando obtem-se um modelo com um ajuste satisfatório nos dados de treinamento, mas que não consegue produzir resultados semelhantes quando aplicado aos dados de teste - o que limita a sua capacidade de fazer boas previsões para dados novos. A combinação das previsões individuais de vários (potencialmente, centenas de) modelos de classificação em uma única previsão ajuda a minimizar os efeitos do sobreajuste; por esta razão, e em conjunto com a evolução dos recursos computacionais, algoritmos de floresta aleatória se tornaram muito populares nas últimas duas décadas.
+
+## Construção do Modelo RF
+
+Para a construção do modelo de floresta aleatória (que, por simplificação, chamaremos simplesmente de "modelo RF" deste ponto em diante), vamos transformar os valores da variável resposta `class` em fatores nas duas partições - este procedimento é obrigatório para que o pacote `randomForest` construa um modelo de classificação em vez de um modelo de regressão (caso os valores ainda estivessem definidos como numéricos).
+
+```{r}
+#| label: factor-class-rf
+#| echo: true
+train_data$class <- factor(train_data$class)
+test_data$class <- factor(test_data$class)
+```
+
+Agora, vamos construir nosso modelo RF a partir dos dados da partição de treinamento, utilizando a função `randomForest`. Para isso, solicitaremos que 200 árvores de decisão sejam construídas (`ntree = 200`) e cada previsão do modelo RF será dada a partir da combinação das previsões dessas árvores. Nós poderíamos ter solicitado um número maior de árvores (`ntree = 500`, por exemplo), mas o consumo de memória computacional aumenta significativamente nessas condições e, particularmente para os nossos dados, não houve um ganho na qualidade geral do ajuste que justifique utilizar mais do que 200 árvores de decisão.
+
+```{r}
+#| label: rf-model
+#| echo: true
+rf_model <- randomForest::randomForest(class ~ .,
+                                       data = train_data,
+                                       ntree = 200)
+```
+
+## Importância dos Preditores no Modelo RF
+
+Diferente da regressão logística, não é possível verificar, de forma direta, se uma variável preditora é estatisticamente significante para o modelo de floresta aleatória, uma vez que tal modelo não possui parâmetros a serem estimados. Neste caso, adota-se uma abordagem diferente: medir a importância de cada preditor a partir do valor médio da variação da impureza devido a este preditor, onde a média é tomada sob todas as árvores de decisão que fazem parte da floresta. Por padrão, a função `randomForest` utiliza o **coeficiente de Gini** como medida de impureza.
+
+Com o modelo gerado e armazenado no objeto `rf_model`, é possível acessar a medida de importância calculada a partir dos dados da partição de treinamento. Para simplificar a visualização dos resultados na [@tbl-import-rf-model], a importância é normalizada para que a soma, sob todos os preditores, seja igual a 1. Além disto, nós selecionamos apenas os 10 preditores com os maiores valores, em ordem decrescente de importância.
+
+```{r}
+#| label: import-rf-model
+#| echo: true
+rf_importance <- as.data.frame(rf_model$importance) |>
+  tibble::rownames_to_column(var = "Componente") |>
+  dplyr::mutate(MeanDecreaseGini = MeanDecreaseGini/sum(MeanDecreaseGini) * 100) |>
+  dplyr::arrange(desc(MeanDecreaseGini)) |>
+  dplyr::top_n(n = 10)
+```
+
+```{r}
+#| label: tbl-import-rf-model
+#| tbl-cap: "Maiores valores de importância das variáveis preditoras no modelo RF"
+knitr::kable(rf_importance,
+             col.names = c("Variável Preditora", "Importância Normalizada (%)"),
+             digits = 2)
+```
+
+As três variáveis mais importantes para o modelo RF foram, respectivamente, os preditores `V17`, `V12` e `V14`, responsáveis juntos por quase 44,2% da importância normalizada total - nenhuma das outras variáveis apresentou uma importância normalizada maior que 10%. Curiosamente, dessas três variáveis com as maiores importâncias, somente a última foi detectada como estatisticamente significante no nosso modelo de regressão logística.
+
+Para mais informações gerais sobre os métodos de cálculo da importância dos preditores, você pode acessar, por exemplo, o tópico da Wikipedia sobre floresta aleatória (em inglês) neste link: <https://en.wikipedia.org/wiki/Random_forest>.
+
+## Avaliação das Previsões do Modelo RF
+
+Finalmente, vamos verificar como o modelo de floresta aleatória se saiu em relação às previsões de fraude, tanto na partição de treinamento quanto na partição de teste. Em ambas as situações, nós criamos um objeto `confusionMatrix` a partir das previsões (`rf_model$predicted` e `rf_prev_test`, respectivamente) e dos valores observados (`train_data$class` e `test_data$class`, respectivamente); então, aplicamos a função `draw_confusion_matrix` para obtermos as respectivas matrizes de confusão e estatísticas da qualidade do ajuste para as duas partições.
+
+Os resultados são exibidos, respectivamente, na [@fig-cm-rf-trn] (para a partição de treinamento) e na [@fig-cm-rf-test] (para a partição de teste).
+
+### Partição de Treinamento (Modelo RF)
+
+```{r}
+#| label: fig-cm-rf-trn
+#| fig-cap: "Matriz de confusão e estatísticas da qualidade das previsões do modelo RF na partição de treinamento"
+#| echo: true
+cm_rf_trn <- caret::confusionMatrix(data = rf_model$predicted,
+                                    reference = train_data$class,
+                                    positive = "1",
+                                    mode = "everything")
+
+draw_confusion_matrix(cm_rf_trn)
+```
+
+Todas as estatísticas de ajuste do modelo RF aplicado aos dados de treinamento apresentaram valores maiores em comparação com o modelo logístico original. Em particular, a precisão do modelo chegou a quase 95,1%, uma vez que 310 das 326 transações classificadas como fraude pela floresta aleatória são, de fato, fraudulentas. A rechamada (sensibilidade) de quase 78,9% para o modelo RF também foi maior em relação ao modelo logístico; como consequência, o F1-score chegou a pouco mais de 86,2%, mostrando que a floresta aleatória tem um poder preditivo maior quanto ao evento positivo (fraude).
+
+Particularmente, o coeficiente Kappa para os dados de treinamento é um pouco maior que 0,862, o que o indica como "quase perfeito" na escala de concordância [@Landis77]. Desta forma, podemos dizer com alguma tranquilidade que o modelo de floresta aleatória teve um desempenho geral superior em comparação ao modelo de regressão logística quando aplicado aos dados da partição de treinamento.
+
+### Partição de Teste (Modelo RF)
+
+```{r}
+#| label: fig-cm-rf-test
+#| fig-cap: "Matriz de confusão e estatísticas da qualidade das previsões do modelo RF na partição de teste"
+#| echo: true
+rf_prev_test <- predict(rf_model, newdata = test_data, type = "response")
+
+cm_rf_test <- caret::confusionMatrix(data = rf_prev_test,
+                                     reference = test_data$class,
+                                     positive = "1",
+                                     mode = "everything")
+
+draw_confusion_matrix(cm_rf_test)
+```
+
+Para a partição de teste, os resultados do modelo RF também são superiores em relação ao modelo logístico. Particularmente, a precisão (95%), a rechamada (76,8%) e o F1-score (84,9%) indicam que o modelo faz um bom trabalho em prever o evento positivo (fraude).
+
+Naturalmente, tanto a sensibilidade quanto a especificidade diminuíram, assim como a acurácia, em relação ao modelo RF aplicado aos dados de treinamento, mas essa redução é muito menor em relação ao que foi observado no modelo de regressão logística, ratificando a capacidade da floresta aleatória em minimizar o efeito de superajuste.
+
+<br>
+
+# Conclusão {#sec-conclusao}
+
+Modelos de detecção de fraude são ferramentas indispensáveis para empresas que trabalham com transações financeiras em larga escala - em especial, transações via cartão de crédito. Construir dois ou mais tipos modelos de classificação que podem ser aplicados a dados de transações com fraude e, então, comparar seus resultados é uma atividade fundamental na análise destes dados.
+
+Neste projeto, apresentamos algumas abordagens que podem ser tomadas neste processo de análise de dados, dentro do contexto de utilização do *software* R, embora isto não exclua a possibilidade de que outras abordagens também possam ser adotadas de forma conjunta, como uma análise descritiva mais detalhada dos dados a partir das previsões construídas pelo "melhor" modelo, com o objetivo de melhorá-lo ou até mesmo antecipar problemas específicos à medida que novas transações são realizadas e o modelo, de forma inevitável, precise ser reestimado (ou mesmo substituído) de tempos em tempos.  
+
+<br>
+
+# Referências {.unnumbered}
+
+```{r}
+#| label: write-ref
+knitr::write_bib(
+  file = "packages.bib"
+)
+```

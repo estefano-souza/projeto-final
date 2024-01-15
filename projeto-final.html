@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-br" xml:lang="pt-br"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="author" content="Estéfano Souza">
+<title>Projeto Final: Modelo de Classificação de Fraude para Dados Desbalanceados</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+<script src="projeto-final_files/libs/clipboard/clipboard.min.js"></script>
+<script src="projeto-final_files/libs/quarto-html/quarto.js"></script>
+<script src="projeto-final_files/libs/quarto-html/popper.min.js"></script>
+<script src="projeto-final_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="projeto-final_files/libs/quarto-html/anchor.min.js"></script>
+<link href="projeto-final_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="projeto-final_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="projeto-final_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="projeto-final_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="projeto-final_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light"><script src="projeto-final_files/libs/kePrint-0.0.1/kePrint.js"></script><link href="projeto-final_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+</head>
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99"><h2 id="toc-title">Conteúdo</h2>
+   
+  <ul>
+<li><a href="#sec-introducao" id="toc-sec-introducao" class="nav-link active" data-scroll-target="#sec-introducao"><span class="header-section-number">1</span> Introdução</a></li>
+  <li>
+<a href="#sec-conj-dados" id="toc-sec-conj-dados" class="nav-link" data-scroll-target="#sec-conj-dados"><span class="header-section-number">2</span> Conjunto de Dados de Fraude</a>
+  <ul class="collapse">
+<li><a href="#descri%C3%A7%C3%A3o-dos-dados" id="toc-descrição-dos-dados" class="nav-link" data-scroll-target="#descri%C3%A7%C3%A3o-dos-dados"><span class="header-section-number">2.1</span> Descrição dos Dados</a></li>
+  <li><a href="#importa%C3%A7%C3%A3o-dos-dados" id="toc-importação-dos-dados" class="nav-link" data-scroll-target="#importa%C3%A7%C3%A3o-dos-dados"><span class="header-section-number">2.2</span> Importação dos Dados</a></li>
+  <li><a href="#prepara%C3%A7%C3%A3o-dos-dados" id="toc-preparação-dos-dados" class="nav-link" data-scroll-target="#prepara%C3%A7%C3%A3o-dos-dados"><span class="header-section-number">2.3</span> Preparação dos Dados</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#sec-trn-teste" id="toc-sec-trn-teste" class="nav-link" data-scroll-target="#sec-trn-teste"><span class="header-section-number">3</span> Partições de Treinamento e Teste</a>
+  <ul class="collapse">
+<li><a href="#estat%C3%ADsticas-descritivas" id="toc-estatísticas-descritivas" class="nav-link" data-scroll-target="#estat%C3%ADsticas-descritivas"><span class="header-section-number">3.1</span> Estatísticas Descritivas</a></li>
+  <li><a href="#matriz-de-correla%C3%A7%C3%B5es-dos-preditores" id="toc-matriz-de-correlações-dos-preditores" class="nav-link" data-scroll-target="#matriz-de-correla%C3%A7%C3%B5es-dos-preditores"><span class="header-section-number">3.2</span> Matriz de Correlações dos Preditores</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#sec-reg-logit" id="toc-sec-reg-logit" class="nav-link" data-scroll-target="#sec-reg-logit"><span class="header-section-number">4</span> Modelo 1: Regressão Logística</a>
+  <ul class="collapse">
+<li><a href="#constru%C3%A7%C3%A3o-do-modelo-log%C3%ADstico" id="toc-construção-do-modelo-logístico" class="nav-link" data-scroll-target="#constru%C3%A7%C3%A3o-do-modelo-log%C3%ADstico"><span class="header-section-number">4.1</span> Construção do Modelo Logístico</a></li>
+  <li>
+<a href="#resumo-do-modelo-log%C3%ADstico" id="toc-resumo-do-modelo-logístico" class="nav-link" data-scroll-target="#resumo-do-modelo-log%C3%ADstico"><span class="header-section-number">4.2</span> Resumo do Modelo Logístico</a>
+  <ul class="collapse">
+<li><a href="#coeficientes-estimados-e-signific%C3%A2ncia" id="toc-coeficientes-estimados-e-significância" class="nav-link" data-scroll-target="#coeficientes-estimados-e-signific%C3%A2ncia"><span class="header-section-number">4.2.1</span> Coeficientes Estimados e Significância</a></li>
+  <li><a href="#pseudo-r-quadrado" id="toc-pseudo-r-quadrado" class="nav-link" data-scroll-target="#pseudo-r-quadrado"><span class="header-section-number">4.2.2</span> Pseudo R-Quadrado</a></li>
+  <li><a href="#avalia%C3%A7%C3%A3o-das-previs%C3%B5es-do-modelo-log%C3%ADstico" id="toc-avaliação-das-previsões-do-modelo-logístico" class="nav-link" data-scroll-target="#avalia%C3%A7%C3%A3o-das-previs%C3%B5es-do-modelo-log%C3%ADstico"><span class="header-section-number">4.2.3</span> Avaliação das Previsões do Modelo Logístico</a></li>
+  </ul>
+</li>
+  <li><a href="#modelo-log%C3%ADstico-com-os-preditores-significantes" id="toc-modelo-logístico-com-os-preditores-significantes" class="nav-link" data-scroll-target="#modelo-log%C3%ADstico-com-os-preditores-significantes"><span class="header-section-number">4.3</span> Modelo Logístico com os Preditores Significantes</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#sec-random-forest" id="toc-sec-random-forest" class="nav-link" data-scroll-target="#sec-random-forest"><span class="header-section-number">5</span> Modelo 2: Floresta Aleatória (<em>Random Forest</em>)</a>
+  <ul class="collapse">
+<li><a href="#constru%C3%A7%C3%A3o-do-modelo-rf" id="toc-construção-do-modelo-rf" class="nav-link" data-scroll-target="#constru%C3%A7%C3%A3o-do-modelo-rf"><span class="header-section-number">5.1</span> Construção do Modelo RF</a></li>
+  <li><a href="#import%C3%A2ncia-dos-preditores-no-modelo-rf" id="toc-importância-dos-preditores-no-modelo-rf" class="nav-link" data-scroll-target="#import%C3%A2ncia-dos-preditores-no-modelo-rf"><span class="header-section-number">5.2</span> Importância dos Preditores no Modelo RF</a></li>
+  <li>
+<a href="#avalia%C3%A7%C3%A3o-das-previs%C3%B5es-do-modelo-rf" id="toc-avaliação-das-previsões-do-modelo-rf" class="nav-link" data-scroll-target="#avalia%C3%A7%C3%A3o-das-previs%C3%B5es-do-modelo-rf"><span class="header-section-number">5.3</span> Avaliação das Previsões do Modelo RF</a>
+  <ul class="collapse">
+<li><a href="#parti%C3%A7%C3%A3o-de-treinamento-modelo-rf" id="toc-partição-de-treinamento-modelo-rf" class="nav-link" data-scroll-target="#parti%C3%A7%C3%A3o-de-treinamento-modelo-rf"><span class="header-section-number">5.3.1</span> Partição de Treinamento (Modelo RF)</a></li>
+  <li><a href="#parti%C3%A7%C3%A3o-de-teste-modelo-rf" id="toc-partição-de-teste-modelo-rf" class="nav-link" data-scroll-target="#parti%C3%A7%C3%A3o-de-teste-modelo-rf"><span class="header-section-number">5.3.2</span> Partição de Teste (Modelo RF)</a></li>
+  </ul>
+</li>
+  </ul>
+</li>
+  <li><a href="#sec-conclusao" id="toc-sec-conclusao" class="nav-link" data-scroll-target="#sec-conclusao"><span class="header-section-number">6</span> Conclusão</a></li>
+  <li><a href="#refer%C3%AAncias" id="toc-referências" class="nav-link" data-scroll-target="#refer%C3%AAncias">Referências</a></li>
+  </ul></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><div class="quarto-title">
+<h1 class="title">Projeto Final: Modelo de Classificação de Fraude para Dados Desbalanceados</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Estéfano Souza </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Data de Publicação</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">18 de janeiro de 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="abstract-title">Resumo</div>
+    Neste projeto final do curso <strong>Relatórios e Apresentações</strong> (turma de novembro/dezembro de 2023) da <code>curso-R</code>, nosso objetivo principal é explorar alguns recursos de preparação, análise e modelagem de dados dentro do <em>software</em> R, com base em um exemplo de classificação de fraude a partir de dados de transações financeiras via cartão de crédito realizadas ao longo de dois dias de setembro de 2013 na Europa.
+  </div>
+</div>
+
+</header><p><br></p>
+<section id="sec-introducao" class="level1" data-number="1"><h1 data-number="1">
+<span class="header-section-number">1</span> Introdução</h1>
+<p>A detecção de fraude é um processo, respectivamente, trabalhoso e desafiador para companhias de cartões de crédito por causa do volume enorme de transações completadas diariamente e porque muitas transações fraudulentas aparentam ser transações normais.</p>
+<p>Um modelo para identificação de transações fraudulentas é, tipicamente, um exemplo de <strong>classificação binária desbalanceada</strong> na qual o objetivo principal é classificar corretamente um evento positivo (no caso, uma transação fraudulenta). O termo “desbalanceado” vem do fato de que, em geral, o número de fraudes é muito menor que o número de transações normais, o que gera algumas dificiulades para que modelos tradicionais de classificação (como regressão logística ou árvore de decisão) realizem previsões precisas quanto ao evento positivo. Nessas condições, algumas métricas como precisão e a rechamada (<em>recall</em>) são mais adequadas para avaliar a qualidade de um modelo preditivo de classificação binária se comparadas, por exemplo, à acurácia geral ou a área sob a curva ROC.</p>
+<p>Neste projeto, que foi inspirado no post original de Jason Brownlee no site <em>Machine Learning Mastery</em> (<a href="https://machinelearningmastery.com/imbalanced-classification-with-the-fraudulent-credit-card-transactions-dataset/" title="Machine Learning Mastery: Imbalanced Classification with the Fraudulent Credit Card Transactions Dataset">clique aqui</a> para acessá-lo), nós utilizaremos o <em>software</em> R <span class="citation" data-cites="R-base">(<a href="#ref-R-base" role="doc-biblioref">R Core Team, 2023</a>)</span> para a importação e análise descritiva de dados de fraude via transações por cartão de crédito, assim como a construção e avaliação de dois modelos de classificação quando aplicados a dados desbalanceados em relação à distribuição de uma variável resposta que, por sua vez, identifica se uma transação foi fraudenta ou não.</p>
+<p>Antes de apresentarmos o conjunto de dados de fraude que será utilizado neste projeto, vamos carregar, dentro do ambiente R, os pacotes necessários para a nossa análise.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/packages_c3d68ecc044bf2724065bb214c30294a">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://yihui.org/knitr/">knitr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://haozhu233.github.io/kableExtra/">kableExtra</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sfirke/janitor">janitor</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/taiyun/corrplot">corrplot</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/topepo/caret/">caret</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://andrisignorell.github.io/DescTools/">DescTools</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://www.stat.berkeley.edu/~breiman/RandomForests/">randomForest</a></span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ao longo deste projeto, a maioria dos procedimentos de preparação de dados serão realizados a partir de funções do pacote <code>dplyr</code> <span class="citation" data-cites="R-dplyr">(<a href="#ref-R-dplyr" role="doc-biblioref">Wickham et al., 2023</a>)</span>, que faz parte da coleção de pacotes <code>tidyverse</code> <span class="citation" data-cites="R-tidyverse">(<a href="#ref-R-tidyverse" role="doc-biblioref">Wickham, 2023</a>)</span>. Para a construção das tabelas, serão utilizados os pacotes <code>knitr</code> <span class="citation" data-cites="R-knitr">(<a href="#ref-R-knitr" role="doc-biblioref">Xie, 2023</a>)</span>, <code>kableExtra</code> <span class="citation" data-cites="R-kableExtra">(<a href="#ref-R-kableExtra" role="doc-biblioref">Zhu, 2021</a>)</span> e <code>janitor</code> <span class="citation" data-cites="R-janitor">(<a href="#ref-R-janitor" role="doc-biblioref">Firke, 2023</a>)</span>. Os outros pacotes serão citados posteriormente.</p>
+<p><br></p>
+</section><section id="sec-conj-dados" class="level1" data-number="2"><h1 data-number="2">
+<span class="header-section-number">2</span> Conjunto de Dados de Fraude</h1>
+<p>O conjunto de dados que será analisado contém transações, via cartão de crédito, realizadas por clientes europeus em setembro de 2013 e está disponível online em <a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud" class="uri">https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud</a>.</p>
+<section id="descrição-dos-dados" class="level2" data-number="2.1"><h2 data-number="2.1" class="anchored" data-anchor-id="descrição-dos-dados">
+<span class="header-section-number">2.1</span> Descrição dos Dados</h2>
+<p>Realizou-se a coleta dos dados ao longo de dois dias, de modo que foram detectadas 492 fraudes, o que representa apenas 0,172% de todas as 284807 transações realizadas no período.</p>
+<p>Devido a questões de confidencialidade, as 28 variáveis de entrada originais foram transformadas por meio de Análise de Componentes Principais (PCA), resultando nas componentes <code>V1</code>, <code>V2</code>, <span class="math inline">\(\cdots\)</span>, <code>V28</code> que serão nossas candidatas a variáveis preditoras.</p>
+<p>A variável <code>time</code> representa o tempo, em segundos, entre a primeira transação e a respectiva transação, de modo que as transações já estão ordenadas em ordem cronológica no conjunto de dados original e, portanto, a primeira linha representa a primeira transação realizada. Por sua vez, a variável <code>amount</code> contém o valor monetário (provavelmente em euros) de cada transação - por simplificação, não a utilizaremos como um preditor nos dois modelos de classificação de fraude.</p>
+<p>Finalmente, a variável <code>class</code> é a nossa variável resposta, assumindo o valor 1 em caso de fraude e o valor 0 caso contrário. Como dito anteriormente, somente 0,172% das transações foram detectadas como fraudulentas, o que invialibiliza o uso da estatística de acurácia como uma ferramenta totalmente confiável de avaliação da qualidade geral do ajuste do modelo. Outras estatísticas como precisão (<em>precision</em>) e rechamada (<em>recall</em>), além da própria área sobre a curva de precisão-rechamada (AUPRC), são mais adequadas quando os dados são muito desbalanceados em relação às categorias da variável resposta. Em particular, nós trabalharemos especialmente com a precisão e a rechamada.</p>
+</section><section id="importação-dos-dados" class="level2" data-number="2.2"><h2 data-number="2.2" class="anchored" data-anchor-id="importação-dos-dados">
+<span class="header-section-number">2.2</span> Importação dos Dados</h2>
+<p>Para facilitar a reprodutibilidade da análise, o conjunto de dados original foi previamente dividido em cinco arquivos do tipo CSV que estão armazenados <a href="https://github.com/estefano-souza/projeto-final">no meu repositório pessoal</a>. Cada arquivo contém os nomes das variáveis na primeira linha e pode ser importado como um <em>data frame</em> a partir da função <code>read.csv</code>, como exibido neste trecho de código:</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/import-data_3d6adefc8ea1aaec317252d229d943c0">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">creditcard_01</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/estefano-souza"</span>,</span>
+<span>                         <span class="st">"/projeto-final/main/dados/creditcard_01.csv"</span><span class="op">)</span>,</span>
+<span>                          header<span class="op">=</span><span class="cn">TRUE</span>,</span>
+<span>                          stringsAsFactors<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">creditcard_02</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/estefano-souza"</span>,</span>
+<span>                         <span class="st">"/projeto-final/main/dados/creditcard_02.csv"</span><span class="op">)</span>,</span>
+<span>                          header<span class="op">=</span><span class="cn">TRUE</span>,</span>
+<span>                          stringsAsFactors<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">creditcard_03</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/estefano-souza"</span>,</span>
+<span>                         <span class="st">"/projeto-final/main/dados/creditcard_03.csv"</span><span class="op">)</span>,</span>
+<span>                          header<span class="op">=</span><span class="cn">TRUE</span>,</span>
+<span>                          stringsAsFactors<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">creditcard_04</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/estefano-souza"</span>,</span>
+<span>                         <span class="st">"/projeto-final/main/dados/creditcard_04.csv"</span><span class="op">)</span>,</span>
+<span>                          header<span class="op">=</span><span class="cn">TRUE</span>,</span>
+<span>                          stringsAsFactors<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">creditcard_05</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/estefano-souza"</span>,</span>
+<span>                         <span class="st">"/projeto-final/main/dados/creditcard_05.csv"</span><span class="op">)</span>,</span>
+<span>                          header<span class="op">=</span><span class="cn">TRUE</span>,</span>
+<span>                          stringsAsFactors<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="preparação-dos-dados" class="level2" data-number="2.3"><h2 data-number="2.3" class="anchored" data-anchor-id="preparação-dos-dados">
+<span class="header-section-number">2.3</span> Preparação dos Dados</h2>
+<p>A seguir, os cinco <em>data frames</em> são unidos, de forma sequencial, para formar um único <em>data frame</em> chamado <code>creditcard</code> que contém todas as transações realizadas. Contudo, a primeira variável (coluna sem nome) contém o índice original de cada transação no conjunto de dados: dentro do R, ela recebe o nome automático <code>X</code> e os dados são ordenados a partir dos seus valores para retomarmos a ordenação original.</p>
+<p>Após a união, a variável <code>X</code> é imediatamente excluída e, finalmente, os cinco <em>data frames</em> originais são excluídos do ambiente de trabalho.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/prep-dataset_3c20d009ac97e43e95841c219d44ec85">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">creditcard</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html">bind_rows</a></span><span class="op">(</span><span class="va">creditcard_01</span>, <span class="va">creditcard_02</span>,</span>
+<span>                              <span class="va">creditcard_03</span>, <span class="va">creditcard_04</span>,</span>
+<span>                              <span class="va">creditcard_05</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
+<span>              <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html">arrange</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
+<span>              <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="op">!</span><span class="va">X</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/rm.html">remove</a></span><span class="op">(</span>list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"creditcard_0%d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A seguir, apresentamos uma visualização básica das primeiras transações (linhas) do conjunto completo de dados na <a href="#tbl-data">Tabela&nbsp;1</a>. Observe que todas as variáveis são numéricas, incluindo a variável <code>class</code>.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-data_6e0eb0606e706b0c89b582231e1fbb3a">
+<div class="cell-output-display">
+<div id="tbl-data" class="anchored">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<caption>Tabela&nbsp;1: Conjunto de dados de fraude (primeiras transações)</caption>
+<thead><tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">time</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V1</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V2</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V3</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V4</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V5</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V6</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V7</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V8</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V9</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V10</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V11</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V12</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V13</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V14</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V15</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V16</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V17</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V18</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V19</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V20</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V21</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V22</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V23</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V24</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V25</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V26</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V27</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V28</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">amount</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">class</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">-1.3598</td>
+<td style="text-align: right;">-0.0728</td>
+<td style="text-align: right;">2.5363</td>
+<td style="text-align: right;">1.3782</td>
+<td style="text-align: right;">-0.3383</td>
+<td style="text-align: right;">0.4624</td>
+<td style="text-align: right;">0.2396</td>
+<td style="text-align: right;">0.0987</td>
+<td style="text-align: right;">0.3638</td>
+<td style="text-align: right;">0.0908</td>
+<td style="text-align: right;">-0.5516</td>
+<td style="text-align: right;">-0.6178</td>
+<td style="text-align: right;">-0.9914</td>
+<td style="text-align: right;">-0.3112</td>
+<td style="text-align: right;">1.4682</td>
+<td style="text-align: right;">-0.4704</td>
+<td style="text-align: right;">0.2080</td>
+<td style="text-align: right;">0.0258</td>
+<td style="text-align: right;">0.4040</td>
+<td style="text-align: right;">0.2514</td>
+<td style="text-align: right;">-0.0183</td>
+<td style="text-align: right;">0.2778</td>
+<td style="text-align: right;">-0.1105</td>
+<td style="text-align: right;">0.0669</td>
+<td style="text-align: right;">0.1285</td>
+<td style="text-align: right;">-0.1891</td>
+<td style="text-align: right;">0.1336</td>
+<td style="text-align: right;">-0.0211</td>
+<td style="text-align: right;">149.62</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.1919</td>
+<td style="text-align: right;">0.2662</td>
+<td style="text-align: right;">0.1665</td>
+<td style="text-align: right;">0.4482</td>
+<td style="text-align: right;">0.0600</td>
+<td style="text-align: right;">-0.0824</td>
+<td style="text-align: right;">-0.0788</td>
+<td style="text-align: right;">0.0851</td>
+<td style="text-align: right;">-0.2554</td>
+<td style="text-align: right;">-0.1670</td>
+<td style="text-align: right;">1.6127</td>
+<td style="text-align: right;">1.0652</td>
+<td style="text-align: right;">0.4891</td>
+<td style="text-align: right;">-0.1438</td>
+<td style="text-align: right;">0.6356</td>
+<td style="text-align: right;">0.4639</td>
+<td style="text-align: right;">-0.1148</td>
+<td style="text-align: right;">-0.1834</td>
+<td style="text-align: right;">-0.1458</td>
+<td style="text-align: right;">-0.0691</td>
+<td style="text-align: right;">-0.2258</td>
+<td style="text-align: right;">-0.6387</td>
+<td style="text-align: right;">0.1013</td>
+<td style="text-align: right;">-0.3398</td>
+<td style="text-align: right;">0.1672</td>
+<td style="text-align: right;">0.1259</td>
+<td style="text-align: right;">-0.0090</td>
+<td style="text-align: right;">0.0147</td>
+<td style="text-align: right;">2.69</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-1.3584</td>
+<td style="text-align: right;">-1.3402</td>
+<td style="text-align: right;">1.7732</td>
+<td style="text-align: right;">0.3798</td>
+<td style="text-align: right;">-0.5032</td>
+<td style="text-align: right;">1.8005</td>
+<td style="text-align: right;">0.7915</td>
+<td style="text-align: right;">0.2477</td>
+<td style="text-align: right;">-1.5147</td>
+<td style="text-align: right;">0.2076</td>
+<td style="text-align: right;">0.6245</td>
+<td style="text-align: right;">0.0661</td>
+<td style="text-align: right;">0.7173</td>
+<td style="text-align: right;">-0.1659</td>
+<td style="text-align: right;">2.3459</td>
+<td style="text-align: right;">-2.8901</td>
+<td style="text-align: right;">1.1100</td>
+<td style="text-align: right;">-0.1214</td>
+<td style="text-align: right;">-2.2619</td>
+<td style="text-align: right;">0.5250</td>
+<td style="text-align: right;">0.2480</td>
+<td style="text-align: right;">0.7717</td>
+<td style="text-align: right;">0.9094</td>
+<td style="text-align: right;">-0.6893</td>
+<td style="text-align: right;">-0.3276</td>
+<td style="text-align: right;">-0.1391</td>
+<td style="text-align: right;">-0.0554</td>
+<td style="text-align: right;">-0.0598</td>
+<td style="text-align: right;">378.66</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.9663</td>
+<td style="text-align: right;">-0.1852</td>
+<td style="text-align: right;">1.7930</td>
+<td style="text-align: right;">-0.8633</td>
+<td style="text-align: right;">-0.0103</td>
+<td style="text-align: right;">1.2472</td>
+<td style="text-align: right;">0.2376</td>
+<td style="text-align: right;">0.3774</td>
+<td style="text-align: right;">-1.3870</td>
+<td style="text-align: right;">-0.0550</td>
+<td style="text-align: right;">-0.2265</td>
+<td style="text-align: right;">0.1782</td>
+<td style="text-align: right;">0.5078</td>
+<td style="text-align: right;">-0.2879</td>
+<td style="text-align: right;">-0.6314</td>
+<td style="text-align: right;">-1.0596</td>
+<td style="text-align: right;">-0.6841</td>
+<td style="text-align: right;">1.9658</td>
+<td style="text-align: right;">-1.2326</td>
+<td style="text-align: right;">-0.2080</td>
+<td style="text-align: right;">-0.1083</td>
+<td style="text-align: right;">0.0053</td>
+<td style="text-align: right;">-0.1903</td>
+<td style="text-align: right;">-1.1756</td>
+<td style="text-align: right;">0.6474</td>
+<td style="text-align: right;">-0.2219</td>
+<td style="text-align: right;">0.0627</td>
+<td style="text-align: right;">0.0615</td>
+<td style="text-align: right;">123.50</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-1.1582</td>
+<td style="text-align: right;">0.8777</td>
+<td style="text-align: right;">1.5487</td>
+<td style="text-align: right;">0.4030</td>
+<td style="text-align: right;">-0.4072</td>
+<td style="text-align: right;">0.0959</td>
+<td style="text-align: right;">0.5929</td>
+<td style="text-align: right;">-0.2705</td>
+<td style="text-align: right;">0.8177</td>
+<td style="text-align: right;">0.7531</td>
+<td style="text-align: right;">-0.8228</td>
+<td style="text-align: right;">0.5382</td>
+<td style="text-align: right;">1.3459</td>
+<td style="text-align: right;">-1.1197</td>
+<td style="text-align: right;">0.1751</td>
+<td style="text-align: right;">-0.4514</td>
+<td style="text-align: right;">-0.2370</td>
+<td style="text-align: right;">-0.0382</td>
+<td style="text-align: right;">0.8035</td>
+<td style="text-align: right;">0.4085</td>
+<td style="text-align: right;">-0.0094</td>
+<td style="text-align: right;">0.7983</td>
+<td style="text-align: right;">-0.1375</td>
+<td style="text-align: right;">0.1413</td>
+<td style="text-align: right;">-0.2060</td>
+<td style="text-align: right;">0.5023</td>
+<td style="text-align: right;">0.2194</td>
+<td style="text-align: right;">0.2152</td>
+<td style="text-align: right;">69.99</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-0.4260</td>
+<td style="text-align: right;">0.9605</td>
+<td style="text-align: right;">1.1411</td>
+<td style="text-align: right;">-0.1683</td>
+<td style="text-align: right;">0.4210</td>
+<td style="text-align: right;">-0.0297</td>
+<td style="text-align: right;">0.4762</td>
+<td style="text-align: right;">0.2603</td>
+<td style="text-align: right;">-0.5687</td>
+<td style="text-align: right;">-0.3714</td>
+<td style="text-align: right;">1.3413</td>
+<td style="text-align: right;">0.3599</td>
+<td style="text-align: right;">-0.3581</td>
+<td style="text-align: right;">-0.1371</td>
+<td style="text-align: right;">0.5176</td>
+<td style="text-align: right;">0.4017</td>
+<td style="text-align: right;">-0.0581</td>
+<td style="text-align: right;">0.0687</td>
+<td style="text-align: right;">-0.0332</td>
+<td style="text-align: right;">0.0850</td>
+<td style="text-align: right;">-0.2083</td>
+<td style="text-align: right;">-0.5598</td>
+<td style="text-align: right;">-0.0264</td>
+<td style="text-align: right;">-0.3714</td>
+<td style="text-align: right;">-0.2328</td>
+<td style="text-align: right;">0.1059</td>
+<td style="text-align: right;">0.2538</td>
+<td style="text-align: right;">0.0811</td>
+<td style="text-align: right;">3.67</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.2297</td>
+<td style="text-align: right;">0.1410</td>
+<td style="text-align: right;">0.0454</td>
+<td style="text-align: right;">1.2026</td>
+<td style="text-align: right;">0.1919</td>
+<td style="text-align: right;">0.2727</td>
+<td style="text-align: right;">-0.0052</td>
+<td style="text-align: right;">0.0812</td>
+<td style="text-align: right;">0.4650</td>
+<td style="text-align: right;">-0.0993</td>
+<td style="text-align: right;">-1.4169</td>
+<td style="text-align: right;">-0.1538</td>
+<td style="text-align: right;">-0.7511</td>
+<td style="text-align: right;">0.1674</td>
+<td style="text-align: right;">0.0501</td>
+<td style="text-align: right;">-0.4436</td>
+<td style="text-align: right;">0.0028</td>
+<td style="text-align: right;">-0.6120</td>
+<td style="text-align: right;">-0.0456</td>
+<td style="text-align: right;">-0.2196</td>
+<td style="text-align: right;">-0.1677</td>
+<td style="text-align: right;">-0.2707</td>
+<td style="text-align: right;">-0.1541</td>
+<td style="text-align: right;">-0.7801</td>
+<td style="text-align: right;">0.7501</td>
+<td style="text-align: right;">-0.2572</td>
+<td style="text-align: right;">0.0345</td>
+<td style="text-align: right;">0.0052</td>
+<td style="text-align: right;">4.99</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">-0.6443</td>
+<td style="text-align: right;">1.4180</td>
+<td style="text-align: right;">1.0744</td>
+<td style="text-align: right;">-0.4922</td>
+<td style="text-align: right;">0.9489</td>
+<td style="text-align: right;">0.4281</td>
+<td style="text-align: right;">1.1206</td>
+<td style="text-align: right;">-3.8079</td>
+<td style="text-align: right;">0.6154</td>
+<td style="text-align: right;">1.2494</td>
+<td style="text-align: right;">-0.6195</td>
+<td style="text-align: right;">0.2915</td>
+<td style="text-align: right;">1.7580</td>
+<td style="text-align: right;">-1.3239</td>
+<td style="text-align: right;">0.6861</td>
+<td style="text-align: right;">-0.0761</td>
+<td style="text-align: right;">-1.2221</td>
+<td style="text-align: right;">-0.3582</td>
+<td style="text-align: right;">0.3245</td>
+<td style="text-align: right;">-0.1567</td>
+<td style="text-align: right;">1.9435</td>
+<td style="text-align: right;">-1.0155</td>
+<td style="text-align: right;">0.0575</td>
+<td style="text-align: right;">-0.6497</td>
+<td style="text-align: right;">-0.4153</td>
+<td style="text-align: right;">-0.0516</td>
+<td style="text-align: right;">-1.2069</td>
+<td style="text-align: right;">-1.0853</td>
+<td style="text-align: right;">40.80</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">-0.8943</td>
+<td style="text-align: right;">0.2862</td>
+<td style="text-align: right;">-0.1132</td>
+<td style="text-align: right;">-0.2715</td>
+<td style="text-align: right;">2.6696</td>
+<td style="text-align: right;">3.7218</td>
+<td style="text-align: right;">0.3701</td>
+<td style="text-align: right;">0.8511</td>
+<td style="text-align: right;">-0.3920</td>
+<td style="text-align: right;">-0.4104</td>
+<td style="text-align: right;">-0.7051</td>
+<td style="text-align: right;">-0.1105</td>
+<td style="text-align: right;">-0.2863</td>
+<td style="text-align: right;">0.0744</td>
+<td style="text-align: right;">-0.3288</td>
+<td style="text-align: right;">-0.2101</td>
+<td style="text-align: right;">-0.4998</td>
+<td style="text-align: right;">0.1188</td>
+<td style="text-align: right;">0.5703</td>
+<td style="text-align: right;">0.0527</td>
+<td style="text-align: right;">-0.0734</td>
+<td style="text-align: right;">-0.2681</td>
+<td style="text-align: right;">-0.2042</td>
+<td style="text-align: right;">1.0116</td>
+<td style="text-align: right;">0.3732</td>
+<td style="text-align: right;">-0.3842</td>
+<td style="text-align: right;">0.0117</td>
+<td style="text-align: right;">0.1424</td>
+<td style="text-align: right;">93.20</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">-0.3383</td>
+<td style="text-align: right;">1.1196</td>
+<td style="text-align: right;">1.0444</td>
+<td style="text-align: right;">-0.2222</td>
+<td style="text-align: right;">0.4994</td>
+<td style="text-align: right;">-0.2468</td>
+<td style="text-align: right;">0.6516</td>
+<td style="text-align: right;">0.0695</td>
+<td style="text-align: right;">-0.7367</td>
+<td style="text-align: right;">-0.3668</td>
+<td style="text-align: right;">1.0176</td>
+<td style="text-align: right;">0.8364</td>
+<td style="text-align: right;">1.0068</td>
+<td style="text-align: right;">-0.4435</td>
+<td style="text-align: right;">0.1502</td>
+<td style="text-align: right;">0.7395</td>
+<td style="text-align: right;">-0.5410</td>
+<td style="text-align: right;">0.4767</td>
+<td style="text-align: right;">0.4518</td>
+<td style="text-align: right;">0.2037</td>
+<td style="text-align: right;">-0.2469</td>
+<td style="text-align: right;">-0.6338</td>
+<td style="text-align: right;">-0.1208</td>
+<td style="text-align: right;">-0.3850</td>
+<td style="text-align: right;">-0.0697</td>
+<td style="text-align: right;">0.0942</td>
+<td style="text-align: right;">0.2462</td>
+<td style="text-align: right;">0.0831</td>
+<td style="text-align: right;">3.68</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<p><br></p>
+</section></section><section id="sec-trn-teste" class="level1" data-number="3"><h1 data-number="3">
+<span class="header-section-number">3</span> Partições de Treinamento e Teste</h1>
+<p>Quando os dados são muito desbalanceados em relação à distribuição das categorias da variável resposta, torna-se ainda mais fundamental dividi-los em partições (subconjuntos) de treinamento e de teste para a construção de um modelo preditivo e, a partir disto, garantir que este modelo fará boas previsões para dados que não foram utilizados na sua construção.</p>
+<p>Para a nossa análise, vamos selecionar, de forma aleatória, aproximadamente 80% das transações para treinarmos o nosso modelo: este novo <em>data frame</em> será chamado de <code>train_data</code> e será a nossa partição de treinamento. Por sua vez, todas as outras transações serão incluídas no <em>data frame</em> chamado <code>test_data</code>, que será a nossa partição de teste.</p>
+<p>Temos que garantir que a distribuição da variável <code>class</code> nas duas partições seja semelhante à distribuição original, ou seja, cerca de 0,172% das transações devem ser fraudulentas nos dois <em>data frames</em>; para isso, vamos utilizar a função <code>createDataPartition</code> do pacote <code>[caret]</code> <span class="citation" data-cites="R-caret">(<a href="#ref-R-caret" role="doc-biblioref">Kuhn, 2023</a>)</span>. Além disto, todas as variáveis <code>V1</code> a <code>V28</code> serão padronizadas de modo que cada uma delas, dentro de cada partição, tenha média 0 e desvio padrão 1.</p>
+<p>Como uma etapa adicional na preparação das partições, vamos excluir as variáveis <code>time</code> e <code>amount</code>, uma vez que elas não serão utilizadas na construção dos modelos.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/data-partition_bef5419359f619b460b48ee90687f58c">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">3456</span><span class="op">)</span></span>
+<span><span class="va">trainIndex</span> <span class="op">&lt;-</span> <span class="fu">caret</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/caret/man/createDataPartition.html">createDataPartition</a></span><span class="op">(</span><span class="va">creditcard</span><span class="op">$</span><span class="va">class</span>, p <span class="op">=</span> <span class="fl">0.8</span>,</span>
+<span>                                         list <span class="op">=</span> <span class="cn">FALSE</span>, times <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">train_data</span> <span class="op">&lt;-</span> <span class="va">creditcard</span><span class="op">[</span><span class="va">trainIndex</span>, <span class="op">]</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate_all.html">mutate_at</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/vars.html">vars</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html">starts_with</a></span><span class="op">(</span><span class="st">"V"</span><span class="op">)</span><span class="op">)</span>, <span class="va">scale</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">amount</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">test_data</span> <span class="op">&lt;-</span> <span class="va">creditcard</span><span class="op">[</span><span class="op">-</span><span class="va">trainIndex</span>, <span class="op">]</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate_all.html">mutate_at</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/vars.html">vars</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html">starts_with</a></span><span class="op">(</span><span class="st">"V"</span><span class="op">)</span><span class="op">)</span>, <span class="va">scale</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">amount</span><span class="op">)</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="estatísticas-descritivas" class="level2" data-number="3.1"><h2 data-number="3.1" class="anchored" data-anchor-id="estatísticas-descritivas">
+<span class="header-section-number">3.1</span> Estatísticas Descritivas</h2>
+<p>Como esperado, a distribuição da variável <code>class</code> se manteve semelhante à distribuição original tanto na partição de treinamento (<a href="#tbl-class-trn">Tabela&nbsp;2</a>) quanto na partição de teste (<a href="#tbl-class-test">Tabela&nbsp;3</a>).</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-class-trn_de24c314b5f1d67ace480ebb0e4756fe">
+<div class="cell-output-display">
+<div id="tbl-class-trn" class="anchored">
+<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<caption>Tabela&nbsp;2: Distribuição da variável resposta (partição de treinamento)</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">class</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Frequência</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Porcentagem</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: right;">227453</td>
+<td style="text-align: right;">99.828</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">393</td>
+<td style="text-align: right;">0.172</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; font-weight: bold;">Total</td>
+<td style="text-align: right; font-weight: bold;">227846</td>
+<td style="text-align: right; font-weight: bold;">100.000</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-class-test_c8c3406f70d4876c5db1976f0e4cfbd9">
+<div class="cell-output-display">
+<div id="tbl-class-test" class="anchored">
+<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<caption>Tabela&nbsp;3: Distribuição da variável resposta (partição de teste)</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">class</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Frequência</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Porcentagem</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: right;">56862</td>
+<td style="text-align: right;">99.826</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">99</td>
+<td style="text-align: right;">0.174</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; font-weight: bold;">Total</td>
+<td style="text-align: right; font-weight: bold;">56961</td>
+<td style="text-align: right; font-weight: bold;">100.000</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<p>A partição de treinamento <code>train_data</code> contém 227846 transações, o que representa um pouco mais de 80% de todas as transações. Por sua vez, a partição de teste <code>test_data</code> contém 56961 transações, um pouco menos de 20% do total.</p>
+<p>Como um exemplo de análise de cada variável candidata a preditor, apresentamos as estatísticas descritivas básicas da variável <code>V1</code> na partição de treinamento (<a href="#tbl-V1-trn">Tabela&nbsp;4</a>) e na partição de teste (<a href="#tbl-V1-test">Tabela&nbsp;5</a>), agrupadas pelos valores da variável resposta <code>class</code> em cada partição. Em particular, observe que, levando-se em conta somente as transações fraudulentas (<code>class</code> = 1), os valores dessas estatísticas são semelhantes ao compararmos as duas partições, mesmo com apenas 492 transações deste tipo no conjunto de dados completo.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-V1-trn_f709f7f68e6e06a41d6788b948e3bd9d">
+<div class="cell-output-display">
+<div id="tbl-V1-trn" class="anchored">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<caption>Tabela&nbsp;4: Estatísticas descritivas da variável <code>V1</code> na partição de treinamento (agrupadas pela variável resposta)</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">class</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Média</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Mediana</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Desvio Padrão</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Mínimo</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Máximo</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.011</td>
+<td style="text-align: right;">0.986</td>
+<td style="text-align: right;">-28.852</td>
+<td style="text-align: right;">1.256</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">-2.392</td>
+<td style="text-align: right;">-1.231</td>
+<td style="text-align: right;">3.327</td>
+<td style="text-align: right;">-14.936</td>
+<td style="text-align: right;">1.091</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-V1-test_5607093d4c58dad072d6355722bf2a0e">
+<div class="cell-output-display">
+<div id="tbl-V1-test" class="anchored">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<caption>Tabela&nbsp;5: Estatísticas descritivas da variável <code>V1</code> na partição de teste (agrupadas pela variável resposta)</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">class</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Média</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Mediana</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Desvio Padrão</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Mínimo</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Máximo</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: right;">0.005</td>
+<td style="text-align: right;">0.005</td>
+<td style="text-align: right;">0.981</td>
+<td style="text-align: right;">-23.745</td>
+<td style="text-align: right;">1.237</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">-2.609</td>
+<td style="text-align: right;">-1.104</td>
+<td style="text-align: right;">3.964</td>
+<td style="text-align: right;">-15.483</td>
+<td style="text-align: right;">1.061</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+</section><section id="matriz-de-correlações-dos-preditores" class="level2" data-number="3.2"><h2 data-number="3.2" class="anchored" data-anchor-id="matriz-de-correlações-dos-preditores">
+<span class="header-section-number">3.2</span> Matriz de Correlações dos Preditores</h2>
+<p>Como explicado na <a href="#sec-conj-dados">Seção&nbsp;2</a>, as 28 variáveis de entrada originais foram transformadas em componentes principais para manter a confidencialidade das informações sobre os clientes. Componentes construídas via PCA não são correlacionadas, o que favorece a sua utilização como preditores em modelos como a regressão logística, que supõe a ausência de colinearidade (correlação) perfeita entre as variáveis independentes.</p>
+<p>Apenas como uma verificação simples, exibimos uma representação gráfica da matriz de correlações de Pearson das variáveis padronizadas <code>V1</code> a <code>V28</code> para os dados da partição de treinamento (<a href="#fig-corrplot-trn">Figura&nbsp;1</a>) e da partição de teste (<a href="#fig-corrplot-test">Figura&nbsp;2</a>). O cálculo das correlações e a visualização dos valores é feita a partir da função <code>corrplot</code> do pacote <code>[corrplot]</code> <span class="citation" data-cites="R-corrplot">(<a href="#ref-R-corrplot" role="doc-biblioref">Wei &amp; Simko, 2021</a>)</span>.</p>
+<p>De fato, os valores de todas as correlações entre cada par de variáveis distintas estão muito próximos de zero, independentemente da partição.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-corrplot-trn_e7abbf115756a1a472ca284cf5afdbd1">
+<div class="cell-output-display">
+<div id="fig-corrplot-trn" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;1: Matriz de correlações dos preditores (amostra de treinamento)</figcaption><p><img src="projeto-final_files/figure-html/fig-corrplot-trn-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-corrplot-test_df2c579b44c5ff9c43c709c6385546af">
+<div class="cell-output-display">
+<div id="fig-corrplot-test" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;2: Matriz de correlações dos preditores (amostra de teste)</figcaption><p><img src="projeto-final_files/figure-html/fig-corrplot-test-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Nas próximas duas seções, vamos construir dois modelos de classificação e, então, comparar seus desempenhos em termos das estatísticas de qualidade do ajuste para as previsões de ocorrência de fraude nos dados da partição de teste.</p>
+<p><br></p>
+</section></section><section id="sec-reg-logit" class="level1" data-number="4"><h1 data-number="4">
+<span class="header-section-number">4</span> Modelo 1: Regressão Logística</h1>
+<p>Nosso primeiro modelo de classificação será baseado na <strong>regressão logística binária</strong> <span class="citation" data-cites="MN89">(<a href="#ref-MN89" role="doc-biblioref">McCullagh &amp; Nelder, 1989</a>)</span>, na qual a variável resposta possui somente duas categorias. De uma forma resumida, pode-se dizer que este tipo de regressão divide o espaço gerado pelas variáveis preditoras em dois subespaços, de modo que uma transação será classificada como fraude (evento <em>“positivo”</em>) ou não-fraude (evento <em>“negativo”</em>) se o valor de uma combinação linear dos valores dos preditores para esta transação cair dentro do respectivo subespaço.</p>
+<section id="construção-do-modelo-logístico" class="level2" data-number="4.1"><h2 data-number="4.1" class="anchored" data-anchor-id="construção-do-modelo-logístico">
+<span class="header-section-number">4.1</span> Construção do Modelo Logístico</h2>
+<p>Para a estimação dos parâmetros do nosso modelo de regressão logística, vamos usar a função <code>glm</code> com as opções padrão para a construção deste tipo de modelo (família binomial com função de ligação <span class="math inline">\(logit(p)=\log{(\frac{p}{1 - p})}\)</span>, onde <span class="math inline">\(0 &lt; p &lt; 1\)</span> é a probabilidade de ocorrência do evento positivo) e utilizando os dados da partição de treinamento <code>train_data</code>.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/logit-model_619a22ca3822079b3b6ad0052dd752dc">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">modelo_trn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">class</span> <span class="op">~</span> <span class="va">.</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span>,</span>
+<span>                  data <span class="op">=</span> <span class="va">train_data</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A seguir, vamos apresentar os resultados do modelo e avaliar a sua capacidade de fazer boas previsões a partir dos dados da partição de teste.</p>
+</section><section id="resumo-do-modelo-logístico" class="level2" data-number="4.2"><h2 data-number="4.2" class="anchored" data-anchor-id="resumo-do-modelo-logístico">
+<span class="header-section-number">4.2</span> Resumo do Modelo Logístico</h2>
+<section id="coeficientes-estimados-e-significância" class="level3" data-number="4.2.1"><h3 data-number="4.2.1" class="anchored" data-anchor-id="coeficientes-estimados-e-significância">
+<span class="header-section-number">4.2.1</span> Coeficientes Estimados e Significância</h3>
+<p>A função <code>summary</code> aplicada ao modelo construído gera o seguinte resumo com os valores das estimativas dos coeficientes de cada variável preditora e os respectivos testes de significância estatística.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/summary-logit_98d3f163abebe4591cb8383a0646e5d0">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">modelo_trn</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = class ~ ., family = binomial(link = "logit"), data = train_data)
+
+Coefficients:
+             Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) -8.721792   0.167508 -52.068  &lt; 2e-16 ***
+V1           0.189860   0.093878   2.022 0.043134 *  
+V2          -0.135743   0.096064  -1.413 0.157642    
+V3           0.040672   0.077375   0.526 0.599132    
+V4           1.006606   0.117597   8.560  &lt; 2e-16 ***
+V5           0.057593   0.097196   0.593 0.553486    
+V6          -0.044451   0.113455  -0.392 0.695211    
+V7          -0.070569   0.079068  -0.893 0.372117    
+V8          -0.240317   0.038403  -6.258 3.90e-10 ***
+V9          -0.263817   0.139162  -1.896 0.057992 .  
+V10         -0.951669   0.128120  -7.428 1.10e-13 ***
+V11         -0.028186   0.090013  -0.313 0.754184    
+V12         -0.089199   0.094425  -0.945 0.344834    
+V13         -0.286156   0.091324  -3.133 0.001728 ** 
+V14         -0.510000   0.066357  -7.686 1.52e-14 ***
+V15         -0.074151   0.088211  -0.841 0.400567    
+V16         -0.167047   0.124229  -1.345 0.178730    
+V17         -0.005460   0.066263  -0.082 0.934329    
+V18          0.005955   0.122206   0.049 0.961136    
+V19          0.041842   0.089990   0.465 0.641955    
+V20         -0.263711   0.064021  -4.119 3.80e-05 ***
+V21          0.306188   0.049372   6.202 5.59e-10 ***
+V22          0.413381   0.110591   3.738 0.000186 ***
+V23         -0.094399   0.049805  -1.895 0.058043 .  
+V24          0.021225   0.103938   0.204 0.838192    
+V25         -0.014582   0.079452  -0.184 0.854383    
+V26          0.039049   0.105380   0.371 0.710972    
+V27         -0.295135   0.065240  -4.524 6.07e-06 ***
+V28         -0.090932   0.044651  -2.037 0.041699 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 5786.3  on 227845  degrees of freedom
+Residual deviance: 1643.8  on 227817  degrees of freedom
+AIC: 1701.8
+
+Number of Fisher Scoring iterations: 12</code></pre>
+</div>
+</div>
+<p>Além da estimativa do intercepto do preditor linear, as estivativas dos coeficientes das componentes <code>V4</code>, <code>V8</code>, <code>V10</code>, <code>V14</code>, <code>V20</code>, <code>V21</code>, <code>V22</code> e <code>V27</code> foram detectadas como estatisticamente significantes em um nível de significância de 0,1% - faz sentido utilizar um nível tão pequeno como referência devido ao tamanho amostral relativamente grande dos conjuntos de dados. No momento, vamos manter todos os preditores no modelo, mas será um exercício interessante comparar o desempenho do modelo atual com um modelo que contém somente os preditores significantes, o que será feito no final da seção.</p>
+</section><section id="pseudo-r-quadrado" class="level3" data-number="4.2.2"><h3 data-number="4.2.2" class="anchored" data-anchor-id="pseudo-r-quadrado">
+<span class="header-section-number">4.2.2</span> Pseudo R-Quadrado</h3>
+<p>Como uma forma de avaliar a qualidade geral do ajuste a partir dos dados de treinamento, a <a href="#tbl-pseudo-r2-logit">Tabela&nbsp;6</a> exibe os valores das medidas de pseudo R-quadrado de McFadden, Cox-Snell e Nagelkerke (Cragg-Uhler). Foi utilizada a função <code>PseudoR2</code> do pacote <code>[DescTools]</code> <span class="citation" data-cites="R-DescTools">(<a href="#ref-R-DescTools" role="doc-biblioref">Signorell, 2023</a>)</span> para o cálculo destas medidas.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-pseudo-r2-logit_451530766b343da04e090a7b9c514c53">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">DescTools</span><span class="fu">::</span><span class="fu"><a href="https://andrisignorell.github.io/DescTools/reference/PseudoR2.html">PseudoR2</a></span><span class="op">(</span><span class="va">modelo_trn</span>,</span>
+<span>                    which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"McFadden"</span>, <span class="st">"CoxSnell"</span>, <span class="st">"Nagelkerke"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>               col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Medida"</span>, <span class="st">"Valor"</span><span class="op">)</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="tbl-pseudo-r2-logit" class="anchored">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<caption>Tabela&nbsp;6: Medidas de pseudo R-quadrado para o modelo logístico</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Medida</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Valor</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">McFadden</td>
+<td style="text-align: right;">0.71591</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CoxSnell</td>
+<td style="text-align: right;">0.01802</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Nagelkerke</td>
+<td style="text-align: right;">0.71849</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<p>Em geral, os valores destas medidas não são próximos de 1 mesmo em modelos de classificação relativamente bem ajustados. Particularmente, o limite superior do pseudo R-quadrado de Cox-Snell sempre é menor que 1; a medida de Nagelkerke, de fato, é uma versão “normalizada” da medida de Cox-Snell para que seja garantido que o limite superior sempre seja 1.</p>
+<p>Tanto o pseudo R-quadrado de McFadden quanto o de Nagelkerke tem o valor 1 como limite superior, o que os aproxima de uma interpretação semelhante à do R-quadrado da regressão linear. Contudo, em situações nas quais os dados são muito desbalanceados em relação às categorias de uma variável resposta binária, os valores de ambas as medidas ficam próximas de 1 de forma artificial porque a categoria com a maior frequência tende a ser muito melhor identificada pelo modelo do que a categoria com a menor frequência, resultando numa contribuição igualmente desbalanceada na qualidade do ajuste (como veremos no próximo tópico).</p>
+<p>No nosso modelo logístico, ambas as medidas estão próximas de 0,72 (ou 72%), o que poderia nos levar à conclusão de que o ajuste do modelo aos dados da partição de treinamento está satisfatório. Entretanto, nossa breve discussão no parágrafo anterior deixa evidente que precisaremos utilizar outras métricas para avaliar a qualidade do nosso modelo.</p>
+<p>Para mais detalhes sobre medidas de pseudo R-quadrado, você pode consultar o artigo que está disponível neste link: <a href="https://statisticalhorizons.com/r2logistic/" class="uri">https://statisticalhorizons.com/r2logistic/</a>.</p>
+</section><section id="avaliação-das-previsões-do-modelo-logístico" class="level3" data-number="4.2.3"><h3 data-number="4.2.3" class="anchored" data-anchor-id="avaliação-das-previsões-do-modelo-logístico">
+<span class="header-section-number">4.2.3</span> Avaliação das Previsões do Modelo Logístico</h3>
+<p>Para verificarmos quão bem nosso modelo de regressão logística binária fez suas previsões, vamos avaliar a matriz de confusão e suas principais estatísticas associadas tanto para os dados da partição de treinamento quanto - e principalmente - para a amostra de teste.</p>
+<section id="partição-de-treinamento-modelo-logístico" class="level4 unnumbered"><h4 class="unnumbered anchored" data-anchor-id="partição-de-treinamento-modelo-logístico">Partição de Treinamento (Modelo Logístico)</h4>
+<p>Vamos começar com a partição de treinamento. As previsões do modelo logístico (1 para “fraude” e 0 para “não-fraude”) são armazenadas em um vetor numérico chamado <code>previsoes_logit_trn</code> e, então, recuperamos os valores originais da variável resposta (<code>train_data$class</code>) para utilizarmos estes dois objetos como argumentos da função <code>confusionMatrix</code> do pacote <code>[caret]</code> que retorna um objeto com todas as informações que precisaremos. Para esta função, é necessário que os vetores numéricos com as previsões e os valores observados sejam transformados em fatores. Além disto, observe que definimos o indicador de fraude como evento positivo (<code>positive = "1"</code>) para que as estatísticas de precisão e rechamada sejam calculadas em função deste evento.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/prev-cm-logit-trn_6f166ca93993dcfdd9889d59f5e72690">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">previsoes_logit_trn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">modelo_trn</span>,</span>
+<span>                                  type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cm_trn</span> <span class="op">&lt;-</span> <span class="fu">caret</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/caret/man/confusionMatrix.html">confusionMatrix</a></span><span class="op">(</span>data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="va">previsoes_logit_trn</span><span class="op">)</span>,</span>
+<span>                              reference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="va">train_data</span><span class="op">$</span><span class="va">class</span><span class="op">)</span>,</span>
+<span>                              dnn <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Previsto"</span>, <span class="st">"Observado"</span><span class="op">)</span>,</span>
+<span>                              positive <span class="op">=</span> <span class="st">"1"</span>,</span>
+<span>                              mode <span class="op">=</span> <span class="st">"everything"</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A seguir, a <a href="#fig-cm-logit-trn">Figura&nbsp;3</a> exibe tanto a <strong>matriz de confusão</strong> (também conhecida como <strong>matriz de classificação</strong>) quanto algumas das principais estatísticas de avaliação da qualidade do ajuste do modelo. Nós discutiremos cada um destes elementos a seguir.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/cm-logit-trn_02318eaeb85a97747b9420239d0df339">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">draw_confusion_matrix</span><span class="op">(</span><span class="va">cm_trn</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-cm-logit-trn_3688a344fdde67a2252fd19241156d4e">
+<div class="cell-output-display">
+<div id="fig-cm-logit-trn" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;3: Matriz de confusão e estatísticas da qualidade das previsões do modelo logístico na partição de treinamento</figcaption><p><img src="projeto-final_files/figure-html/fig-cm-logit-trn-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>(OBSERVAÇÃO: O código original com a função <code>draw_confusion_matrix</code> que constroi esta visualização está disponível em <a href="https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package" class="uri">https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package</a>. Seu único argumento é um objeto construído previamente pela função <code>confusionMatrix</code>. Nós fizemos algumas alterações no código da função para adaptá-la à nossa análise.)</p>
+<p>A <strong>acurácia</strong> é a porcentagem de transações, em relação ao total, que foram classificadas corretamente pelo modelo, independentemente da categoria da variável resposta <code>class</code>. Na nossa análise, este valor é 99,93%, o que indica a priori que o modelo fez um trabalho quase perfeito ao classificar as transações nos dados de treinamento, mas é necessário analisarmos as previsões para cada categoria de forma separada, especialmente quando os dados são tão desbalanceados.</p>
+<p>Somente 33 das 227453 transações não fraudulentas na partição de treinamento foram classificadas como fraude pelo modelo, resultando em uma <strong>especificidade</strong> (ou seja, a porcentagem de eventos negativos classificados corretamente) de pouco mais de 99,98%. De fato, essa porcentagem elevada explica por que o modelo teve uma acurácia tão próxima de 100%.</p>
+<p>Quanto ao evento positivo, 261 das 393 transações fraudulentas foram efetivamente classificadas como fraude pelo nosso modelo, resultando em uma <strong>sensibilidade</strong> de 66,41%. Este valor, de fato, é baixo em comparação com a porcentagem de identificação correta de eventos negativos - e isso já era esperado devido ao desbalanceamento dos dados quanto aos valores da variável resposta; contudo, quando nosso modelo classifica uma transação como fraudulenta (o que ocorreu em 294 transações), ele acertou 261 vezes, resultando em uma <strong>precisão</strong> de quase 88,78%, um valor significativo.</p>
+<p>Em algumas situações, vale mais a pena garantir que o modelo faça uma previsão certeira dado que ele classificou uma transação como fraudulenta devido à raridade do evento positivo neste tipo de dados. Sendo assim, aceita-se “sacrificar” um pouco da sensibilidade do modelo, aumentando consequentemente a porcentagem de falso-positivos, em nome de uma precisão melhor. Além disto, deve-se avaliar se é mais “custoso” classificar uma transação não-fraudulenta como fraude ou classificar uma transação fraudulenta como não-fraude; nestas condições, analisar o valor (<em>amount</em>) das transações nos respectivos grupos falso-positivos e falso-negativos pode ajudar na tomada de decisão.</p>
+<p>A <strong>rechamada</strong> (ou <em>recall</em>) é equivalente à sensibilidade e, por se referir ao evento positivo, é tipicamente avaliada em conjunto com a precisão. Por sua vez, a estatística <strong>F1-score</strong> une a precisão e a rechamada em um único valor que mede a qualidade geral do modelo em relação à classificação do evento positivo. Neste caso, temos que: <span class="math display">\[
+F_1 = \frac{2 \cdot precisão \cdot recall}{precisão + recall} = 0,7598 = 75,98\%,
+\]</span> um valor relativamente satisfatório para um grupo de transações que representa somente 0,172% dos dados.</p>
+<p>Finalmente, o coeficiente <strong>Kappa</strong> (também conhecido como <em>Kappa de Cohen</em>) pode ser visto como uma estatística geral da acurácia de um modelo de classificação porque ele mede o nível de concordância entre a distribuição original dos valores da variável resposta e as previsões geradas pelo modelo. Kappa pode assumir valores entre 0 e 1 e quanto maior o seu valor, melhor é a capacidade preditiva geral do modelo.</p>
+<p>Para os dados de treinamento, o valor de Kappa é um pouco menor que 0,76, o que indica, de acordo com a escala apresentada por <span class="citation" data-cites="Landis77">(<a href="#ref-Landis77" role="doc-biblioref">Landis &amp; Koch, 1977</a>)</span>, uma concordância “substancial” entre as previsões do modelo e os valores observados.</p>
+</section><section id="partição-de-teste-modelo-logístico" class="level4 unnumbered"><h4 class="unnumbered anchored" data-anchor-id="partição-de-teste-modelo-logístico">Partição de Teste (Modelo Logístico)</h4>
+<p>Agora, vamos calcular as previsões do modelo logístico para os dados da partição de teste <code>test_data</code> e que serão armazenadas no vetor <code>previsoes_logit_test</code>. Da mesma forma que foi feito anteriormente, também criaremos um objeto <code>cm_test</code> que conterá todas as informações que precisamos para construir nossa matriz de confusão, assim como gerar as estatísticas de qualidade do ajuste do modelo.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/prev-cm-logit-test_94419af206b692fd541caf28bae6427f">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">previsoes_logit_test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">modelo_trn</span>,</span>
+<span>                                  newdata <span class="op">=</span> <span class="va">test_data</span>,</span>
+<span>                                  type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="va">cm_test</span> <span class="op">&lt;-</span> <span class="fu">caret</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/caret/man/confusionMatrix.html">confusionMatrix</a></span><span class="op">(</span>data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="va">previsoes_logit_test</span><span class="op">)</span>,</span>
+<span>                              reference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="va">test_data</span><span class="op">$</span><span class="va">class</span><span class="op">)</span>,</span>
+<span>                              dnn <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Previsto"</span>, <span class="st">"Observado"</span><span class="op">)</span>,</span>
+<span>                              positive <span class="op">=</span> <span class="st">"1"</span>,</span>
+<span>                              mode <span class="op">=</span> <span class="st">"everything"</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A <a href="#fig-cm-logit-test">Figura&nbsp;4</a> exibe a matriz de confusão e as estatísticas para o modelo logísico avaliado na partição de teste.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/cm-logit-test_7edac29e08742e62a36b0380ef6a1307">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">draw_confusion_matrix</span><span class="op">(</span><span class="va">cm_test</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-cm-logit-test_da0f89d07261d61b8abc3ba9faa6c126">
+<div class="cell-output-display">
+<div id="fig-cm-logit-test" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;4: Matriz de confusão e estatísticas da qualidade das previsões do modelo logístico na partição de teste</figcaption><p><img src="projeto-final_files/figure-html/fig-cm-logit-test-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>De uma forma geral, todas as estatísticas apresentaram valores um pouco menores quando comparados aos respectivos valores para o modelo aplicado na partição de treinamento; esta situação não é incomum quando aplicamos um modelo preditivo em dados de teste que não foram utilizado na construção do mesmo, mas a boa notícia é que nosso modelo logístico ainda consegue fazer um bom trabalho em termos de precisão, uma vez que 59 das 72 transações classificadas como fraude eram fraudulentas, resultando em uma precisão de 81,94%, um valor relativamente alto se levarmos em conta o quão desbalanceados são os dados em relação à variável resposta.</p>
+<p>Ainda que a sensibilidade (rechamada) em termos de classificação do evento positivo (fraude) tenha caído para cerca de 59,6% na partição de teste, o coeficiente Kappa ainda se manteve próximo de 0,7, indicando que o modelo possui uma capacidade preditiva significativa - o que não nos impede de tentar melhorá-lo, como veremos a seguir.</p>
+</section></section></section><section id="modelo-logístico-com-os-preditores-significantes" class="level2" data-number="4.3"><h2 data-number="4.3" class="anchored" data-anchor-id="modelo-logístico-com-os-preditores-significantes">
+<span class="header-section-number">4.3</span> Modelo Logístico com os Preditores Significantes</h2>
+<p>Agora, vamos verificar se manter apenas os oito preditores que foram detectados como estatisticamente significantes no modelo logístico original melhorará as previsões.</p>
+<p>As configurações do novo modelo construído a partir dos dados da partição de treinamento são armazenadas no objeto <code>modelo_trn_2</code>:</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/logit-model-2_c74dc500c23000a560afca2dda2e7ea4">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">modelo_trn_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">class</span> <span class="op">~</span> <span class="va">V4</span> <span class="op">+</span> <span class="va">V8</span> <span class="op">+</span> <span class="va">V10</span> <span class="op">+</span> <span class="va">V14</span> <span class="op">+</span> <span class="va">V20</span> <span class="op">+</span> <span class="va">V21</span> <span class="op">+</span> <span class="va">V22</span> <span class="op">+</span> <span class="va">V27</span>,</span>
+<span>                    family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span>,</span>
+<span>                    data <span class="op">=</span> <span class="va">train_data</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Aqui, não repetiremos os comandos utilizados na construção das tabelas e figuras, nos concentrando somente na interpretação dos resultados.</p>
+<p>O resumo do novo modelo logístico mostra que, de fato, todos os coeficientes dos preditores continuam sendo estatisticamente significantes:</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/summary-logit-2_f8864b371fdd3480a023d734c181be8d">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">modelo_trn_2</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = class ~ V4 + V8 + V10 + V14 + V20 + V21 + V22 + 
+    V27, family = binomial(link = "logit"), data = train_data)
+
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) -8.68962    0.14042 -61.881  &lt; 2e-16 ***
+V4           0.79849    0.06411  12.455  &lt; 2e-16 ***
+V8          -0.20602    0.02451  -8.404  &lt; 2e-16 ***
+V10         -0.78856    0.06215 -12.689  &lt; 2e-16 ***
+V14         -0.68713    0.03961 -17.348  &lt; 2e-16 ***
+V20         -0.10124    0.02594  -3.903 9.49e-05 ***
+V21          0.33357    0.03476   9.595  &lt; 2e-16 ***
+V22          0.57372    0.08196   7.000 2.56e-12 ***
+V27         -0.20068    0.03269  -6.138 8.34e-10 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 5786.3  on 227845  degrees of freedom
+Residual deviance: 1727.1  on 227837  degrees of freedom
+AIC: 1745.1
+
+Number of Fisher Scoring iterations: 11</code></pre>
+</div>
+</div>
+<p>A <a href="#tbl-pseudo-r2-logit-2">Tabela&nbsp;7</a> exibe as medidas de pseudo R-quadrado para o novo modelo, indicando uma pequena queda em relação aos valores do modelo completo com todos os preditores:</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-pseudo-r2-logit-2_55e5cd62c979d65c29f64757f7f1dc68">
+<div class="cell-output-display">
+<div id="tbl-pseudo-r2-logit-2" class="anchored">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<caption>Tabela&nbsp;7: Medidas de pseudo R-quadrado para o novo modelo logístico</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Medida</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Valor</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">McFadden</td>
+<td style="text-align: right;">0.70152</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CoxSnell</td>
+<td style="text-align: right;">0.01766</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Nagelkerke</td>
+<td style="text-align: right;">0.70417</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<p>A <a href="#fig-cm-logit-trn-2">Figura&nbsp;5</a> mostra que, de uma forma geral, o novo modelo logístico teve um desempenho um pouco pior nos dados de treinamento quanto às estatísticas de qualidade do ajuste. Da mesma forma, a <a href="#fig-cm-logit-test-2">Figura&nbsp;6</a> ratifica esta tendência do novo modelo aplicado aos dados da partição de teste.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-cm-logit-trn-2_ca4c0a55ff676f41813d134dfcbe2aa0">
+<div class="cell-output-display">
+<div id="fig-cm-logit-trn-2" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;5: Matriz de confusão e estatísticas da qualidade das previsões do novo modelo logístico na partição de treinamento</figcaption><p><img src="projeto-final_files/figure-html/fig-cm-logit-trn-2-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-cm-logit-test-2_a6162c12af7ec085db6e8ec5ea180300">
+<div class="cell-output-display">
+<div id="fig-cm-logit-test-2" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;6: Matriz de confusão e estatísticas da qualidade das previsões do novo modelo logístico na partição de teste</figcaption><p><img src="projeto-final_files/figure-html/fig-cm-logit-test-2-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Com isto, podemos concluir que a exclusão de preditores não melhorou o modelo logístico original e, portanto, deveríamos manter todos os preditores em um primeiro momento.</p>
+<p>Ainda assim, vale observar que, ao contrário da regressão linear clássica, a inclusão de variáveis independentes em um modelo de regressão logística não é garantia de que o modelo melhore - no mínimo, em relação ao valor de uma das medidas de pseudo R-quadrado.</p>
+<p><br></p>
+</section></section><section id="sec-random-forest" class="level1" data-number="5"><h1 data-number="5">
+<span class="header-section-number">5</span> Modelo 2: Floresta Aleatória (<em>Random Forest</em>)</h1>
+<p>Nosso segundo tipo de modelo de classificação é a <strong>floresta aleatória</strong> (<em>random forest</em> ou, simplesmente, <em>RF</em>), que é um método de combinação de vários modelos de árvores de decisão construídos de forma simultânea; a previsão do modelo RF é a categoria (da variável resposta) que foi selecionada pela maioria dessas árvores. O primeiro algoritmo de floresta aleatório foi proposto pela cientista computacional Tin Kam Ho <span class="citation" data-cites="Ho95">(<a href="#ref-Ho95" role="doc-biblioref">Ho, 1995</a>)</span>, com extensões posteriores implementadas, por exemplo, no atual pacote <code>randomForest</code> do R <span class="citation" data-cites="R-randomForest">(<a href="#ref-R-randomForest" role="doc-biblioref">Breiman et al., 2022</a>)</span>.</p>
+<p>Um dos principais problemas na construção de modelos simples de classificação (regressão logística, árvore de decisão etc.) é o <strong>superajuste</strong> (<em>overfitting</em>), que ocorre quando obtem-se um modelo com um ajuste satisfatório nos dados de treinamento, mas que não consegue produzir resultados semelhantes quando aplicado aos dados de teste - o que limita a sua capacidade de fazer boas previsões para dados novos. A combinação das previsões individuais de vários (potencialmente, centenas de) modelos de classificação em uma única previsão ajuda a minimizar os efeitos do sobreajuste; por esta razão, e em conjunto com a evolução dos recursos computacionais, algoritmos de floresta aleatória se tornaram muito populares nas últimas duas décadas.</p>
+<section id="construção-do-modelo-rf" class="level2" data-number="5.1"><h2 data-number="5.1" class="anchored" data-anchor-id="construção-do-modelo-rf">
+<span class="header-section-number">5.1</span> Construção do Modelo RF</h2>
+<p>Para a construção do modelo de floresta aleatória (que, por simplificação, chamaremos simplesmente de “modelo RF” deste ponto em diante), vamos transformar os valores da variável resposta <code>class</code> em fatores nas duas partições - este procedimento é obrigatório para que o pacote <code>randomForest</code> construa um modelo de classificação em vez de um modelo de regressão (caso os valores ainda estivessem definidos como numéricos).</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/factor-class-rf_1a734800ff471e5908979d5924cd8a5a">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">train_data</span><span class="op">$</span><span class="va">class</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">train_data</span><span class="op">$</span><span class="va">class</span><span class="op">)</span></span>
+<span><span class="va">test_data</span><span class="op">$</span><span class="va">class</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">test_data</span><span class="op">$</span><span class="va">class</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Agora, vamos construir nosso modelo RF a partir dos dados da partição de treinamento, utilizando a função <code>randomForest</code>. Para isso, solicitaremos que 200 árvores de decisão sejam construídas (<code>ntree = 200</code>) e cada previsão do modelo RF será dada a partir da combinação das previsões dessas árvores. Nós poderíamos ter solicitado um número maior de árvores (<code>ntree = 500</code>, por exemplo), mas o consumo de memória computacional aumenta significativamente nessas condições e, particularmente para os nossos dados, não houve um ganho na qualidade geral do ajuste que justifique utilizar mais do que 200 árvores de decisão.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/rf-model_4bb067b3d1c4f760dd80907b5c3fa182">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rf_model</span> <span class="op">&lt;-</span> <span class="fu">randomForest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/randomForest/man/randomForest.html">randomForest</a></span><span class="op">(</span><span class="va">class</span> <span class="op">~</span> <span class="va">.</span>,</span>
+<span>                                       data <span class="op">=</span> <span class="va">train_data</span>,</span>
+<span>                                       ntree <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="importância-dos-preditores-no-modelo-rf" class="level2" data-number="5.2"><h2 data-number="5.2" class="anchored" data-anchor-id="importância-dos-preditores-no-modelo-rf">
+<span class="header-section-number">5.2</span> Importância dos Preditores no Modelo RF</h2>
+<p>Diferente da regressão logística, não é possível verificar, de forma direta, se uma variável preditora é estatisticamente significante para o modelo de floresta aleatória, uma vez que tal modelo não possui parâmetros a serem estimados. Neste caso, adota-se uma abordagem diferente: medir a importância de cada preditor a partir do valor médio da variação da impureza devido a este preditor, onde a média é tomada sob todas as árvores de decisão que fazem parte da floresta. Por padrão, a função <code>randomForest</code> utiliza o <strong>coeficiente de Gini</strong> como medida de impureza.</p>
+<p>Com o modelo gerado e armazenado no objeto <code>rf_model</code>, é possível acessar a medida de importância calculada a partir dos dados da partição de treinamento. Para simplificar a visualização dos resultados na <a href="#tbl-import-rf-model">Tabela&nbsp;8</a>, a importância é normalizada para que a soma, sob todos os preditores, seja igual a 1. Além disto, nós selecionamos apenas os 10 preditores com os maiores valores, em ordem decrescente de importância.</p>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/import-rf-model_e7772698460f01572087a7803b0454dd">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rf_importance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html">as.data.frame</a></span><span class="op">(</span><span class="va">rf_model</span><span class="op">$</span><span class="va">importance</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html">rownames_to_column</a></span><span class="op">(</span>var <span class="op">=</span> <span class="st">"Componente"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html">mutate</a></span><span class="op">(</span>MeanDecreaseGini <span class="op">=</span> <span class="va">MeanDecreaseGini</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">MeanDecreaseGini</span><span class="op">)</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html">arrange</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html">desc</a></span><span class="op">(</span><span class="va">MeanDecreaseGini</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/top_n.html">top_n</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/tbl-import-rf-model_0a92eada648e7b71852f02fb4510838c">
+<div class="cell-output-display">
+<div id="tbl-import-rf-model" class="anchored">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<caption>Tabela&nbsp;8: Maiores valores de importância das variáveis preditoras no modelo RF</caption>
+<thead><tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Variável Preditora</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Importância Normalizada (%)</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">V17</td>
+<td style="text-align: right;">19.97</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">V12</td>
+<td style="text-align: right;">13.35</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">V14</td>
+<td style="text-align: right;">10.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">V11</td>
+<td style="text-align: right;">8.38</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">V10</td>
+<td style="text-align: right;">7.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">V16</td>
+<td style="text-align: right;">5.35</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">V9</td>
+<td style="text-align: right;">3.49</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">V4</td>
+<td style="text-align: right;">2.97</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">V18</td>
+<td style="text-align: right;">2.89</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">V7</td>
+<td style="text-align: right;">2.60</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+<p>As três variáveis mais importantes para o modelo RF foram, respectivamente, os preditores <code>V17</code>, <code>V12</code> e <code>V14</code>, responsáveis juntos por quase 44,2% da importância normalizada total - nenhuma das outras variáveis apresentou uma importância normalizada maior que 10%. Curiosamente, dessas três variáveis com as maiores importâncias, somente a última foi detectada como estatisticamente significante no nosso modelo de regressão logística.</p>
+<p>Para mais informações gerais sobre os métodos de cálculo da importância dos preditores, você pode acessar, por exemplo, o tópico da Wikipedia sobre floresta aleatória (em inglês) neste link: <a href="https://en.wikipedia.org/wiki/Random_forest" class="uri">https://en.wikipedia.org/wiki/Random_forest</a>.</p>
+</section><section id="avaliação-das-previsões-do-modelo-rf" class="level2" data-number="5.3"><h2 data-number="5.3" class="anchored" data-anchor-id="avaliação-das-previsões-do-modelo-rf">
+<span class="header-section-number">5.3</span> Avaliação das Previsões do Modelo RF</h2>
+<p>Finalmente, vamos verificar como o modelo de floresta aleatória se saiu em relação às previsões de fraude, tanto na partição de treinamento quanto na partição de teste. Em ambas as situações, nós criamos um objeto <code>confusionMatrix</code> a partir das previsões (<code>rf_model$predicted</code> e <code>rf_prev_test</code>, respectivamente) e dos valores observados (<code>train_data$class</code> e <code>test_data$class</code>, respectivamente); então, aplicamos a função <code>draw_confusion_matrix</code> para obtermos as respectivas matrizes de confusão e estatísticas da qualidade do ajuste para as duas partições.</p>
+<p>Os resultados são exibidos, respectivamente, na <a href="#fig-cm-rf-trn">Figura&nbsp;7</a> (para a partição de treinamento) e na <a href="#fig-cm-rf-test">Figura&nbsp;8</a> (para a partição de teste).</p>
+<section id="partição-de-treinamento-modelo-rf" class="level3" data-number="5.3.1"><h3 data-number="5.3.1" class="anchored" data-anchor-id="partição-de-treinamento-modelo-rf">
+<span class="header-section-number">5.3.1</span> Partição de Treinamento (Modelo RF)</h3>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-cm-rf-trn_c4062dbd56dbfba0729747ec4e1b44bf">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cm_rf_trn</span> <span class="op">&lt;-</span> <span class="fu">caret</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/caret/man/confusionMatrix.html">confusionMatrix</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">rf_model</span><span class="op">$</span><span class="va">predicted</span>,</span>
+<span>                                    reference <span class="op">=</span> <span class="va">train_data</span><span class="op">$</span><span class="va">class</span>,</span>
+<span>                                    positive <span class="op">=</span> <span class="st">"1"</span>,</span>
+<span>                                    mode <span class="op">=</span> <span class="st">"everything"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">draw_confusion_matrix</span><span class="op">(</span><span class="va">cm_rf_trn</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-cm-rf-trn" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;7: Matriz de confusão e estatísticas da qualidade das previsões do modelo RF na partição de treinamento</figcaption><p><img src="projeto-final_files/figure-html/fig-cm-rf-trn-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Todas as estatísticas de ajuste do modelo RF aplicado aos dados de treinamento apresentaram valores maiores em comparação com o modelo logístico original. Em particular, a precisão do modelo chegou a quase 95,1%, uma vez que 310 das 326 transações classificadas como fraude pela floresta aleatória são, de fato, fraudulentas. A rechamada (sensibilidade) de quase 78,9% para o modelo RF também foi maior em relação ao modelo logístico; como consequência, o F1-score chegou a pouco mais de 86,2%, mostrando que a floresta aleatória tem um poder preditivo maior quanto ao evento positivo (fraude).</p>
+<p>Particularmente, o coeficiente Kappa para os dados de treinamento é um pouco maior que 0,862, o que o indica como “quase perfeito” na escala de concordância <span class="citation" data-cites="Landis77">(<a href="#ref-Landis77" role="doc-biblioref">Landis &amp; Koch, 1977</a>)</span>. Desta forma, podemos dizer com alguma tranquilidade que o modelo de floresta aleatória teve um desempenho geral superior em comparação ao modelo de regressão logística quando aplicado aos dados da partição de treinamento.</p>
+</section><section id="partição-de-teste-modelo-rf" class="level3" data-number="5.3.2"><h3 data-number="5.3.2" class="anchored" data-anchor-id="partição-de-teste-modelo-rf">
+<span class="header-section-number">5.3.2</span> Partição de Teste (Modelo RF)</h3>
+<div class="cell" data-layout-align="center" data-hash="projeto-final_cache/html/fig-cm-rf-test_81541133819043e32d352fe69e051485">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rf_prev_test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">rf_model</span>, newdata <span class="op">=</span> <span class="va">test_data</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cm_rf_test</span> <span class="op">&lt;-</span> <span class="fu">caret</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/caret/man/confusionMatrix.html">confusionMatrix</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">rf_prev_test</span>,</span>
+<span>                                     reference <span class="op">=</span> <span class="va">test_data</span><span class="op">$</span><span class="va">class</span>,</span>
+<span>                                     positive <span class="op">=</span> <span class="st">"1"</span>,</span>
+<span>                                     mode <span class="op">=</span> <span class="st">"everything"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">draw_confusion_matrix</span><span class="op">(</span><span class="va">cm_rf_test</span><span class="op">)</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-cm-rf-test" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure"><figcaption class="figure-caption">Figura&nbsp;8: Matriz de confusão e estatísticas da qualidade das previsões do modelo RF na partição de teste</figcaption><p><img src="projeto-final_files/figure-html/fig-cm-rf-test-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Para a partição de teste, os resultados do modelo RF também são superiores em relação ao modelo logístico. Particularmente, a precisão (95%), a rechamada (76,8%) e o F1-score (84,9%) indicam que o modelo faz um bom trabalho em prever o evento positivo (fraude).</p>
+<p>Naturalmente, tanto a sensibilidade quanto a especificidade diminuíram, assim como a acurácia, em relação ao modelo RF aplicado aos dados de treinamento, mas essa redução é muito menor em relação ao que foi observado no modelo de regressão logística, ratificando a capacidade da floresta aleatória em minimizar o efeito de superajuste.</p>
+<p><br></p>
+</section></section></section><section id="sec-conclusao" class="level1" data-number="6"><h1 data-number="6">
+<span class="header-section-number">6</span> Conclusão</h1>
+<p>Modelos de detecção de fraude são ferramentas indispensáveis para empresas que trabalham com transações financeiras em larga escala - em especial, transações via cartão de crédito. Construir dois ou mais tipos modelos de classificação que podem ser aplicados a dados de transações com fraude e, então, comparar seus resultados é uma atividade fundamental na análise destes dados.</p>
+<p>Neste projeto, apresentamos algumas abordagens que podem ser tomadas neste processo de análise de dados, dentro do contexto de utilização do <em>software</em> R, embora isto não exclua a possibilidade de que outras abordagens também possam ser adotadas de forma conjunta, como uma análise descritiva mais detalhada dos dados a partir das previsões construídas pelo “melhor” modelo, com o objetivo de melhorá-lo ou até mesmo antecipar problemas específicos à medida que novas transações são realizadas e o modelo, de forma inevitável, precise ser reestimado (ou mesmo substituído) de tempos em tempos.</p>
+<p><br></p>
+</section><section id="referências" class="level1 unnumbered">
+
+</section><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">Referências</h2><div id="refs" class="references csl-bib-body hanging-indent" data-line-spacing="2" role="list">
+<div id="ref-R-randomForest" class="csl-entry" role="listitem">
+Breiman, L., Cutler, A., Liaw, A., &amp; Wiener, M. (2022). <em>randomForest: Breiman and Cutler’s Random Forests for Classification and Regression</em>. <a href="https://www.stat.berkeley.edu/~breiman/RandomForests/">https://www.stat.berkeley.edu/~breiman/RandomForests/</a>
+</div>
+<div id="ref-R-janitor" class="csl-entry" role="listitem">
+Firke, S. (2023). <em>janitor: Simple Tools for Examining and Cleaning Dirty Data</em>. <a href="https://github.com/sfirke/janitor">https://github.com/sfirke/janitor</a>
+</div>
+<div id="ref-Ho95" class="csl-entry" role="listitem">
+Ho, T. K. (1995). Random Decision Forests. <em>Proceedings of the Third International Conference on Document Analysis and Recognition (Volume 1) - Volume 1</em>, 278–282.
+</div>
+<div id="ref-R-caret" class="csl-entry" role="listitem">
+Kuhn, M. (2023). <em>caret: Classification and Regression Training</em>. <a href="https://github.com/topepo/caret/">https://github.com/topepo/caret/</a>
+</div>
+<div id="ref-Landis77" class="csl-entry" role="listitem">
+Landis, J. R., &amp; Koch, G. G. (1977). The Measurement of Observer Agreement for Categorical Data. <em>Biometrics</em>, <em>33</em>(1).
+</div>
+<div id="ref-MN89" class="csl-entry" role="listitem">
+McCullagh, P., &amp; Nelder, J. A. (1989). <em>Generalized linear models (<span>S</span>econd edition)</em>. London: Chapman &amp; Hall.
+</div>
+<div id="ref-R-base" class="csl-entry" role="listitem">
+R Core Team. (2023). <em>R: A Language and Environment for Statistical Computing</em>. R Foundation for Statistical Computing. <a href="https://www.R-project.org/">https://www.R-project.org/</a>
+</div>
+<div id="ref-R-DescTools" class="csl-entry" role="listitem">
+Signorell, A. (2023). <em>DescTools: Tools for Descriptive Statistics</em>. <a href="https://andrisignorell.github.io/DescTools/">https://andrisignorell.github.io/DescTools/</a>
+</div>
+<div id="ref-R-corrplot" class="csl-entry" role="listitem">
+Wei, T., &amp; Simko, V. (2021). <em>corrplot: Visualization of a Correlation Matrix</em>. <a href="https://github.com/taiyun/corrplot">https://github.com/taiyun/corrplot</a>
+</div>
+<div id="ref-R-tidyverse" class="csl-entry" role="listitem">
+Wickham, H. (2023). <em>tidyverse: Easily Install and Load the Tidyverse</em>. <a href="https://tidyverse.tidyverse.org">https://tidyverse.tidyverse.org</a>
+</div>
+<div id="ref-R-dplyr" class="csl-entry" role="listitem">
+Wickham, H., François, R., Henry, L., Müller, K., &amp; Vaughan, D. (2023). <em>dplyr: A Grammar of Data Manipulation</em>. <a href="https://dplyr.tidyverse.org">https://dplyr.tidyverse.org</a>
+</div>
+<div id="ref-R-knitr" class="csl-entry" role="listitem">
+Xie, Y. (2023). <em>knitr: A General-Purpose Package for Dynamic Report Generation in R</em>. <a href="https://yihui.org/knitr/">https://yihui.org/knitr/</a>
+</div>
+<div id="ref-R-kableExtra" class="csl-entry" role="listitem">
+Zhu, H. (2021). <em>kableExtra: Construct Complex Table with kable and Pipe Syntax</em>. <a href="http://haozhu233.github.io/kableExtra/">http://haozhu233.github.io/kableExtra/</a>
+</div>
+</div></section></div></main><!-- /main column --><script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copiada");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copiada");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+          // target, if specified
+          link.setAttribute("target", "_blank");
+      }
+    }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
