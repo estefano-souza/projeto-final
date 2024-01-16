@@ -11,3 +11,12 @@ O arquivo de dados original *creditcard.csv* foi dividido em cinco arquivos CSV 
 - *creditcard_03.csv*
 - *creditcard_04.csv*
 - *creditcard_05.csv*
+
+## **Arquivos do projeto**
+
+- *projeto-final.qmd*: arquivo no formato Quarto com a estrutura do relatório HTML do projeto e os *chunks* de programação em R.
+- *projeto-final.html*: relatório do projeto, em formato HTML.
+- *draw_confusion_matrix.R*: script no formato R com o código customizado da função que cria a matriz de confusão utilizada no relatório do projeto.
+- *apa.csl*: arquivo no formato CSL (*Citation Style Language*) com o estilo de citação de referências bibliográficas da American Psychological Association (APA).
+- *packages.bib*: arquivo no formato BibTeX com as referências bibliográficas dos pacotes R utilizados no projeto.
+- *references.bib*: arquivo no formato BibTeX com as referências bibliográficas citadas no projeto.
