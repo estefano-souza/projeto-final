@@ -18,6 +18,8 @@ Cada arquivo contém as mesmas variáveis (colunas), definidas nesta mesma ordem
 - **amount**: valor da transação (provavelmente em euros).
 - **class**: classificação binária da transação (1 = fraude; 0 = não-fraude). 
 
+OBSERVAÇÃO: Quando o arquivo *projeto-final.qmd* é renderizado (por exemplo, dentro do RStudio), os dados são baixados a partir deste repositório e, por padrão, armazenados em cache.
+
 ## **Arquivos do projeto**
 
 - *projeto-final.qmd*: arquivo no formato Quarto com a estrutura do relatório HTML do projeto e os *chunks* de programação em R.
