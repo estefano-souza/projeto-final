@@ -4,7 +4,7 @@ Neste repositório, estão os dados e arquivos do projeto final do curso "Relat�
 
 ## **Dados utilizados no projeto**
 
-O arquivo de dados original *creditcard.csv* foi dividido em cinco arquivos CSV que estão armazenados no subdiretório **/dados**: 
+O arquivo de dados original *creditcard.csv* (disponível originalmente em <https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud>) foi dividido em cinco arquivos CSV que estão armazenados no subdiretório **/dados**: 
 
 - *creditcard_01.csv*
 - *creditcard_02.csv*
