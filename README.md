@@ -4,13 +4,19 @@ Neste repositório, estão os dados e arquivos do projeto final do curso "Relat�
 
 ## **Dados utilizados no projeto**
 
-O arquivo de dados original *creditcard.csv* (disponível originalmente em <https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud>) foi dividido em cinco arquivos CSV que estão armazenados no subdiretório **/dados**: 
-
+O arquivo de dados original *creditcard.csv* (disponível em <https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud>), que contém as transações via cartão de crédito, foi dividido em cinco arquivos CSV que estão armazenados no subdiretório **/dados**: 
 - *creditcard_01.csv*
 - *creditcard_02.csv*
 - *creditcard_03.csv*
 - *creditcard_04.csv*
 - *creditcard_05.csv*
+
+Cada arquivo contém as mesmas variáveis (colunas), definidas nesta mesma ordem em que estão organizadas nos dados:
+- Uma variável sem nome que representa o índice original de cada transação e ela é utilizada unicamente para reordenar as transações após a união dos cinco arquivos.
+- **time**: tempo, em segundos, entre a primeira transação e a transação atual.
+- **V1** a **V28**: variáveis de entrada para os modelos de classificação - os valores originais foram "anonimizados" por meio de uma Análise de Componentes Principais (PCA).
+- **amount**: valor da transação (provavelmente em euros).
+- **class**: classificação binária da transação (1 = fraude; 0 = não-fraude). 
 
 ## **Arquivos do projeto**
 
